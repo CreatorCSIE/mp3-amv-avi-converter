@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amvconv"
+version = "0.0.1"
+description = "现代架构重写的 AMV 视频转换器（逆向自「媒体播放器管理工具 4.46」AMVConverter）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-only" }
+dependencies = []
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+amv-conv = "amvconv.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

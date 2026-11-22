@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 测试媒体与转换产物（体积大 / 隐私）
+*.amv
+*.avi
+*.mp4
+*.mp3
+*.mkv
+*.mov
+*.wmv
+*.flv
+*.rm
+*.rmvb
+*.dat
+media/
+samples/
+out/
+
+# IDE / OS
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
