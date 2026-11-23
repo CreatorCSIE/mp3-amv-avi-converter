@@ -53,7 +53,7 @@ def parse(data: bytes) -> dict:
         "audio_sizes": [],
         "video_sizes": [],
         "has_idx1": False,
-        "has_amv_end": data.endswith(b"AMV_END_"),
+        "has_amv_end": b"AMV_END_" in data,
         "first_audio_header": "",
         "jpeg_ffd8_count": data.count(b"\xff\xd8"),
         "jpeg_ffd9_count": data.count(b"\xff\xd9"),
@@ -86,6 +86,19 @@ def parse(data: bytes) -> dict:
         elif name == "idx1":
             rep["has_idx1"] = True
 
+    # 尾区：原版在数据区后写 'AMV_END_' 哨兵 + idx1 索引块（ffmpeg 只写哨兵）
+    pos = data.find(b"AMV_END_")
+    if pos >= 0:
+        t = data[pos + 8:]
+        if t[:4] == b"idx1":
+            rep["has_idx1"] = True
+            rep["idx1_size_field"] = _le32(t, 4)
+            body = t[8:]
+            rep["idx1_records"] = len(body) // 16
+            recs = [body[k:k + 16] for k in range(0, min(32, len(body)), 16)]
+            rep["idx1_head"] = [
+                (r[:4].decode("latin1"), _le32(r, 4), _le32(r, 8), _le32(r, 12)) for r in recs
+            ]
     rep["video_frames"] = len(rep["video_sizes"])
     rep["audio_blocks"] = len(rep["audio_sizes"])
     rep["audio_block_sizes_hist"] = dict(Counter(rep["audio_sizes"]))

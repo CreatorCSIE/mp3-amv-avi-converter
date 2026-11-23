@@ -41,6 +41,20 @@ CHIPTYPE=1, BMPADJUST=0, MEMSIZE=30000000, DISKSIZE=1600000000
 - 音频与视频 **1:1 交织**；文件尾有字面量 **`AMV_END_`**（8 字节，ffmpeg 也写！）
 - `16fps` 被 ffmpeg 直接拒绝（22050 % 16 ≠ 0）
 
+## 3.5 ffmpeg amvenc 高度硬编码限制（实测枚举）
+
+对 64/96/112/120/128/144/160/176/192/208/224/240 全部实测：**仅 height=120 被拒**
+（amvenc.c 硬编码，其余全过）。而原程序 12 档中 160X120、208X120 两档都是 height=120，
+且 settings.ini 显示用户上次用的正是 VWH=3 → 160X120。
+→ **结论：ffmpeg 的 amv 编码器不能直接做原程序 1/6 的档位**。
+重写方案倾向：ffmpeg 只做解码/缩放 → mjpeg 编码 JPEG → 自研 muxer 拼 AMV 容器
+（amvh 高度字段自写，不受 ffmpeg 白名单限制）。
+
+## 3.6 settings.ini 运行参数（用户实机）
+
+`VWH=3`(160X120) `Insertpic=TRUE`(logo 默认开!) `Imagequality=0` `Imagezoom=1` `VFBS=high`
+`BMPADJUST=0` `OUTPUTPATH=`(默认) `Overwrite=TRUE`
+
 ## 4. 「支持现代格式」的真相
 
 帮助/格式列表是 **2012 年语境**的"现代"。RM/RMVB/VOB/FLV/ASF 等输入依赖**系统 DirectShow 解码器**，
@@ -49,7 +63,9 @@ CHIPTYPE=1, BMPADJUST=0, MEMSIZE=30000000, DISKSIZE=1600000000
 
 ## 5. 待验证清单（A/B 对比测试驱动）
 
-- [ ] 原工具（COM 无头调用优先，GUI 自动化兜底）产出的 .amv vs ffmpeg 产出的逐字节差异
+- [ ] 原工具产出的 .amv vs ffmpeg 产出的逐字节差异
+      （COM 反射已失败：AmvTransforms 运行时 ITypeInfo 指向未注册 typelib，且内嵌 typelib 仅含
+      ICountLines/GetFileLines 等遗留接口，疑似非转换入口 → 需用户 GUI 实跑产出，或反汇编 transdll CreateAmvInterface）
 - [ ] amvh 56 字节各字段含义（尺寸/fps/码率/芯片型号？）→ 反汇编 `AmvHeaderEncoder`
 - [ ] idx1 是否写入、`AMV_END_` 尾部标记、RIFF 长度回填行为
 - [ ] 16/22 等非整除帧率下原工具的音频块策略

@@ -39,7 +39,6 @@ def _cmd_convert(args: argparse.Namespace) -> int:
         print(f"警告: {args.fps}fps 不整除 22050，改用 {fixed}fps（临时策略）", file=sys.stderr)
         prof = Profile(w, h, fixed)
     job = ConversionJob(source=Path(args.src), target=Path(args.dst), profile=prof, flip=args.flip)
-    print("$ " + " ".join(ffmpeg.build_command(job)), file=sys.stderr)
     res = ffmpeg.convert(job)
     print(res.stderr_tail, file=sys.stderr)
     print("OK" if res.ok else f"FAIL rc={res.returncode}")
