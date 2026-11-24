@@ -26,7 +26,7 @@ jobs:
           --include-package=amvconv
           --include-package-data=qfluentwidgets
           --output-filename=amvconv-gui-${{ github.ref_name }}.exe
-          -m amvconv.gui.main_window
+          gui_entry.py
       - name: Smoke（exe 可启动，offscreen 冒烟后自退）
         env:
           QT_QPA_PLATFORM: offscreen
