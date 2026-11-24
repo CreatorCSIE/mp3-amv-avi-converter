@@ -1,12 +1,11 @@
-"""关于页（内容格式借鉴 ClassIsland：版本可复制 → 项目简介 → 运行环境 →
-第三方组件列表 → 致谢 → 设备兼容 → 免责声明；许可证逐字实查不虚构）。
+"""关于页（内容格式借鉴 ClassIsland：次要内容用折叠分组 ExpanderGroup 收纳，
+主区保持一屏；许可证逐字实查不虚构）。
 """
 
 from __future__ import annotations
 
 import platform
 import subprocess
-import sys
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QGuiApplication, QDesktopServices
@@ -14,8 +13,35 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from qfluentwidgets import (
     BodyLabel, CaptionLabel, CardWidget, FluentIcon, PushButton,
-    SingleDirectionScrollArea, StrongBodyLabel, SubtitleLabel,
+    StrongBodyLabel, SubtitleLabel, TransparentPushButton,
 )
+
+
+class FoldGroup(CardWidget):
+    """折叠分组（ClassIsland“更多设置”语义；开源版 qfluentwidgets 无 ExpanderGroup）."""
+
+    def __init__(self, title: str, parent=None):
+        super().__init__(parent)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(12, 6, 12, 10)
+        lay.setSpacing(6)
+        self._head = TransparentPushButton(FluentIcon.DOWN, title)
+        self._body = QWidget()
+        self._bl = QVBoxLayout(self._body)
+        self._bl.setContentsMargins(4, 0, 4, 0)
+        self._bl.setSpacing(8)
+        self._body.setVisible(False)
+        self._head.clicked.connect(self._toggle)
+        lay.addWidget(self._head)
+        lay.addWidget(self._body)
+
+    def _toggle(self):
+        vis = not self._body.isVisible()
+        self._body.setVisible(vis)
+        self._head.setIcon(FluentIcon.UP if vis else FluentIcon.DOWN)
+
+    def addWidget(self, w, stretch=0, align=Qt.AlignLeft):
+        self._bl.addWidget(w, stretch, align)
 
 REPO_URL = "https://github.com/CreatorCSIE/mp3-amv-avi-converter"
 
@@ -55,22 +81,12 @@ class AboutInterface(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("aboutInterface")
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        scroll = SingleDirectionScrollArea(self, orient=Qt.Vertical)
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea{background:transparent;border:none}")
-        content = QWidget()
-        content.setObjectName("aboutContent")
-        content.setStyleSheet("#aboutContent{background:transparent}")
-        scroll.setWidget(content)
-        outer.addWidget(scroll)
-        lay = QVBoxLayout(content)
+        lay = QVBoxLayout(self)
         lay.setContentsMargins(36, 20, 36, 32)
         lay.setSpacing(14)
         lay.addWidget(SubtitleLabel("关于"))
 
-        # 头区：名称 + 版本（点击复制）+ 定位
+        # 主区（常开）：头区 + 运行环境 + 设备兼容
         head = CardWidget()
         hl = QVBoxLayout(head)
         hl.addWidget(BodyLabel("<h2 style='margin:0'>AMV Converter</h2>"))
@@ -91,7 +107,6 @@ class AboutInterface(QWidget):
         hl.addWidget(rb, 0, Qt.AlignLeft)
         lay.addWidget(head)
 
-        # 运行环境
         env = CardWidget()
         el = QVBoxLayout(env)
         el.addWidget(StrongBodyLabel("运行环境"))
@@ -99,49 +114,40 @@ class AboutInterface(QWidget):
             el.addWidget(CaptionLabel(line))
         lay.addWidget(env)
 
-        # 第三方组件
-        refs = CardWidget()
-        rl = QVBoxLayout(refs)
-        rl.addWidget(StrongBodyLabel("本项目使用的第三方库和框架"))
+        dev = CardWidget()
+        dl = QVBoxLayout(dev)
+        dl.addWidget(StrongBodyLabel("设备兼容（实机验证）"))
+        dl.addWidget(CaptionLabel(
+            "RUIZU M7：128x128@30 / 160x120@30 / 320x240@25 播放与快进全过；"
+            "AMV 快进依赖 idx1（已按原版布局写入）。"))
+        lay.addWidget(dev)
+
+        # 次要内容：折叠分组（默认收起）
+        refs = FoldGroup("本项目使用的第三方库和框架", self)
         for name, desc, lic, url in REFERENCES:
-            rl.addWidget(BodyLabel(f"<b>{name}</b>（{lic}）<br>"
-                                   f"<span style='color:gray'>{desc}</span>"))
+            refs.addWidget(BodyLabel(f"<b>{name}</b>（{lic}）<br>"
+                                     f"<span style='color:gray'>{desc}</span>"))
             b = PushButton(FluentIcon.LINK, "查看仓库")
             b.clicked.connect(lambda _=False, u=url: QDesktopServices.openUrl(QUrl(u)))
-            rl.addWidget(b, 0, Qt.AlignLeft)
+            refs.addWidget(b, 0, Qt.AlignLeft)
         lay.addWidget(refs)
 
-        # 致谢
-        thanks = CardWidget()
-        tl = QVBoxLayout(thanks)
-        tl.addWidget(StrongBodyLabel("致谢"))
-        tl.addWidget(CaptionLabel(
+        thanks = FoldGroup("致谢", self)
+        thanks.addWidget(CaptionLabel(
             "· 《媒体播放器管理工具 4.46》及其内置 AMV_EncDLL/AMV_DecDLL 的原作者——"
             "格式逆向的行为参照（专有软件，本项目不随附其任何代码与资源）；<br>"
             "· RUIZU M7（ATJ2157）实机——全部比特流结论的验证平台；<br>"
             "· ClassIsland 与 Attic 启动器——关于页内容格式参照。"))
         lic_btn = PushButton(FluentIcon.LINK, "查看本项目 LICENSE（GPL-3.0）")
         lic_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(REPO_URL + "/blob/HEAD/LICENSE")))
-        tl.addWidget(lic_btn, 0, Qt.AlignLeft)
+        thanks.addWidget(lic_btn, 0, Qt.AlignLeft)
         lay.addWidget(thanks)
 
-        # 设备兼容
-        dev = CardWidget()
-        dl = QVBoxLayout(dev)
-        dl.addWidget(StrongBodyLabel("设备兼容（实机验证）"))
-        dl.addWidget(CaptionLabel(
-            "RUIZU M7：128x128@30 / 160x120@30 / 320x240@25 播放与快进全过；"
-            "AMV 快进依赖 idx1（已按原版布局写入）。<br>"
+        disc = FoldGroup("免责声明", self)
+        disc.addWidget(CaptionLabel(
+            "本软件按“现状”提供（GPL-3.0），不提供任何明示或暗示的保证；转换与分发"
+            "内容的版权责任由使用者承担；对其他 ATJ 型号/固件版本的兼容性未作承诺。<br>"
             "PC 预览建议 ffplay/本工具预览窗——VLC 3.x 与 PotPlayer 对 AMV 容器存在已知缺陷"
             "（详见仓库 docs/06）。"))
-        lay.addWidget(dev)
-
-        # 免责声明
-        disc = CardWidget()
-        dsl = QVBoxLayout(disc)
-        dsl.addWidget(StrongBodyLabel("免责声明"))
-        dsl.addWidget(CaptionLabel(
-            "本软件按“现状”提供（GPL-3.0），不提供任何明示或暗示的保证；转换与分发"
-            "内容的版权责任由使用者承担；对其他 ATJ 型号/固件版本的兼容性未作承诺。"))
         lay.addWidget(disc)
         lay.addStretch(1)
