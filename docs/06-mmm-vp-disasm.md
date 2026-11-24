@@ -268,14 +268,25 @@ size=正确值，**两者均可播** → 写正确值。原版 RIFF size 字段=
 - @0x17f0 = IMA-ADPCM 音频解码（step 表 @0x1000b108、索引 clamp 0x58、
   nibble 步长表 @0x1000b0c8）——音频路径与视频解耦，佐证 376B 块假设。
 
-**PC 播放器取向差异（VLC 倒置之谜，2026-11-24）**：用户实测本项目输出在 VLC 中
-倒置、ffplay 正常。根因：ffmpeg `mjpegdec.c` decode_init 对
-`AV_CODEC_ID_AMV` **硬编码 `s->flipped = 1`**（负 linesize 实现 vflip，与容器
-头部无关——原版与本项目输出的 strf/strh 均全零，无任何方向字段）。即 ffmpeg
-编码器写入 vflip + 解码器翻回，自洽；ATJ 固件直显（实机定案）；VLC 无此补偿
-→ 显示原始比特流 = vflip(显示内容) = 倒置。**原版工具文件在 VLC 中同样倒置**
-（lianqu1980-160x120.amv 实测），本项目输出与原版行为完全一致，非 bug。
-PC 预览建议用 ffplay/PotPlayer 等尊重该约定的播放器，或 VLC 开垂直翻转。
+**PC 播放器取向差异（VLC 倒置之谜，2026-11-24 定案）**：用户实测本项目输出在 VLC 中
+倒置、ffplay 正常。根因链（VLC 3.0.24 源码 + 官方 win64 便携版实测闭环）：
+
+1. ffmpeg `mjpegdec.c` decode_init 对 `AV_CODEC_ID_AMV` 硬编码 `s->flipped = 1`，
+   解码末尾用**负 linesize 技巧**翻转返回的 AVFrame（`data += (h-1)*linesize;
+   linesize *= -1`，ffmpeg 3.4~7.1 均如此，与容器头部无关——原版与本项目输出的
+   strf/strh 均全零，无任何方向字段）。
+2. ffplay 直接消费 AVFrame → 正常。VLC 走 avformat demuxer（merge-ffmpeg 构建，
+   日志 `demux module "avcodec"`、`adding es: video codec = AMV`、`codec (amv)
+   started`）→ 解码器**确实识别为 amv**，但其直接渲染路径在解码前就把
+   picture_t 绑定到 buffer 正 pitch，解码后直接使用 picture_t、**丢弃 AVFrame
+   上的负 linesize 变更** → 显示未翻转的原始流 = 倒置。VLC 快照实测：渲染帧
+   160x128 顶部 8 行黑填充 = 原始比特流取向（corr 0.76 vs vflip(源)）。
+   非 DR 路径（`--avcodec-dr=0`）同样坏：`lavc_CopyPicture` 把 linesize 转
+   `size_t`（video.c L381），负值变天文数字 → 拷贝崩坏无输出。
+3. **原版工具文件在 VLC 中同样倒置**（lianqu1980-160x120.amv 实测）——本项目输出
+   与原版行为完全一致，非转换器 bug，是 VLC avcodec 模块对负 linesize 帧的已知
+   处理缺陷。PC 预览用 ffplay 等直接消费 AVFrame 的播放器，或 VLC 开垂直翻转。
+   补齐档（非 16 倍数）VLC 显示 128 行全高（含黑填充），ffplay/设备按 120 裁剪。
 
 ## 下阶段
 
