@@ -281,12 +281,22 @@ size=正确值，**两者均可播** → 写正确值。原版 RIFF size 字段=
    picture_t 绑定到 buffer 正 pitch，解码后直接使用 picture_t、**丢弃 AVFrame
    上的负 linesize 变更** → 显示未翻转的原始流 = 倒置。VLC 快照实测：渲染帧
    160x128 顶部 8 行黑填充 = 原始比特流取向（corr 0.76 vs vflip(源)）。
-   非 DR 路径（`--avcodec-dr=0`）同样坏：`lavc_CopyPicture` 把 linesize 转
-   `size_t`（video.c L381），负值变天文数字 → 拷贝崩坏无输出。
+   （VLC 3.0 已移除 `--avcodec-dr` 选项，DR 是 amv 唯一路径，无法在 3.0 上
+   验证非 DR 分支；`lavc_CopyPicture` 的 size_t 负 stride 因补码回绕理论上
+   反而能正确翻转，但未实测，不下结论。）
 3. **原版工具文件在 VLC 中同样倒置**（lianqu1980-160x120.amv 实测）——本项目输出
    与原版行为完全一致，非转换器 bug，是 VLC avcodec 模块对负 linesize 帧的已知
    处理缺陷。PC 预览用 ffplay 等直接消费 AVFrame 的播放器，或 VLC 开垂直翻转。
    补齐档（非 16 倍数）VLC 显示 128 行全高（含黑填充），ffplay/设备按 120 裁剪。
+
+**PotPlayer 对 AMV 容器的已知缺陷（2026-11-24，用户实测）**：打开 AMV 容器文件
+直接 Access Violation 崩溃（PotPlayer64.dll 弹窗），部分环境不崩则视频全乱码、
+音频轨正常；**AVI 容器（原版工具 AVI 模式/本项目 aviwriter 产物）播放正常**。
+根因：PotPlayer 无 AMV 支持——(a) AMV 容器退化头部（无 `avih`、strh/strf 全零）
+踩崩其 AVI 解析器；(b) AMV 帧是无头 JPEG（无 DQT/DHT/SOS，表由固件固化），其
+MJPEG 解码路径拿不到表 → 乱码；(c) ADPCM 音频简单直接 → 正常。AVI 模式帧带完整
+JPEG 头（APP0 AVI1/DQT/SOF0/DHT/SOS）+ 正常 avih/strh，故通用播放器全兼容。
+结论：AMV 容器面向设备；PC 通用预览请转 AVI 容器或用 ffplay。
 
 ## 下阶段
 
