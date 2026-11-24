@@ -26,6 +26,7 @@ import base64
 import re
 import struct
 import subprocess
+import time
 from pathlib import Path
 
 AUDIO_RATE = 22050
@@ -169,6 +170,18 @@ def remux(raw: bytes, width: int, height: int, frame_filter=None) -> bytes:
     return b"RIFF" + struct.pack("<I", len(out) - 8) + out[8:]
 
 
+def _unlink_retry(path: Path, retries: int = 20, delay: float = 0.05) -> None:
+    """Windows 上 terminate() 杀死 ffmpeg 后，内核释放其文件句柄滞后于 wait()，
+    立即 unlink 会撞 WinError 32；短暂重试即可，超时仍失败则抛出。"""
+    for _ in range(retries):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            time.sleep(delay)
+    path.unlink(missing_ok=True)
+
+
 def convert_avi(source: Path, target: Path, width: int, height: int,
                 ffmpeg: str = "ffmpeg", tmp: Path | None = None,
                 progress=None, cancel=None, duration: float | None = None,
@@ -211,5 +224,5 @@ def convert_avi(source: Path, target: Path, width: int, height: int,
     finally:
         if proc.stderr is not None:
             proc.stderr.close()
-        tmp.unlink(missing_ok=True)
+        _unlink_retry(tmp)
     return subprocess.CompletedProcess(cmd, proc.returncode, None, buf[-2000:])
