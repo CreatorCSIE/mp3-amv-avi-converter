@@ -76,8 +76,8 @@ pytest                              # 回归测试
   倒置（其 avcodec 模块直接渲染路径丢弃 ffmpeg 的负 linesize 翻转，属 VLC 缺陷）
   ——原版工具的文件在 VLC 中同样倒置，非转换器问题；VLC 请开垂直翻转
 - **PotPlayer 不支持 AMV 容器**：打开可致 Access Violation 崩溃，或视频乱码
-  （帧为无头 JPEG + 退化头部所致），音频正常；AVI 容器产物全播放器兼容。
-  设备用 AMV，PC 通用预览转 AVI 或用 ffplay（证据见 docs/06）
+  （音频正常）；AVI 容器（原版工具 AVI 模式）在 PotPlayer 播放正常。
+  机制推测见 docs/06（闭源未验证）。设备用 AMV，PC 通用预览转 AVI 或用 ffplay
 - 音频：IMA-ADPCM 变体，**固定 22050 Hz 单声道**，与视频帧 1:1 交织，块样本数 = 22050/fps
 - 帧率：UI 表候选（16/25/30 等）中取最大，低帧率源复制帧补齐；22050 需被 fps 整除
 - ATJ2157 硬件解码上限 320×240

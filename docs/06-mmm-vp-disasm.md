@@ -292,10 +292,14 @@ size=正确值，**两者均可播** → 写正确值。原版 RIFF size 字段=
 **PotPlayer 对 AMV 容器的已知缺陷（2026-11-24，用户实测）**：打开 AMV 容器文件
 直接 Access Violation 崩溃（PotPlayer64.dll 弹窗），部分环境不崩则视频全乱码、
 音频轨正常；**AVI 容器（原版工具 AVI 模式/本项目 aviwriter 产物）播放正常**。
-根因：PotPlayer 无 AMV 支持——(a) AMV 容器退化头部（无 `avih`、strh/strf 全零）
-踩崩其 AVI 解析器；(b) AMV 帧是无头 JPEG（无 DQT/DHT/SOS，表由固件固化），其
-MJPEG 解码路径拿不到表 → 乱码；(c) ADPCM 音频简单直接 → 正常。AVI 模式帧带完整
-JPEG 头（APP0 AVI1/DQT/SOF0/DHT/SOS）+ 正常 avih/strh，故通用播放器全兼容。
+实证事实：① 上述行为（用户观察）；② 两种容器的结构差异（本项目字节级验证：
+AMV 容器无 `avih`、strh/strf 全零，帧为无头 JPEG；AVI 容器头部正常、帧带完整
+JPEG 头 APP0/DQT/SOF0/DHT/SOS）。
+**机制推测（未验证，PotPlayer 闭源，其内部实现无任何证据）**：崩溃可能源于
+其 AVI 解析器对退化头部（无 avih）的空引用；乱码可能源于 MJPEG 解码路径拿不到
+固件固化的量化/Huffman 表；音频正常因 ADPCM 简单。总判断"PotPlayer 无 AMV
+支持"由行为成立，但分工归因待证——可证伪实验：给 AMV 容器补正常 avih/strh
+（帧不动）看崩溃是否消失；AMV 帧内嵌 DQT/DHT/SOS 看乱码是否消失。
 结论：AMV 容器面向设备；PC 通用预览请转 AVI 容器或用 ffplay。
 
 ## 下阶段
