@@ -268,6 +268,15 @@ size=正确值，**两者均可播** → 写正确值。原版 RIFF size 字段=
 - @0x17f0 = IMA-ADPCM 音频解码（step 表 @0x1000b108、索引 clamp 0x58、
   nibble 步长表 @0x1000b0c8）——音频路径与视频解耦，佐证 376B 块假设。
 
+**PC 播放器取向差异（VLC 倒置之谜，2026-11-24）**：用户实测本项目输出在 VLC 中
+倒置、ffplay 正常。根因：ffmpeg `mjpegdec.c` decode_init 对
+`AV_CODEC_ID_AMV` **硬编码 `s->flipped = 1`**（负 linesize 实现 vflip，与容器
+头部无关——原版与本项目输出的 strf/strh 均全零，无任何方向字段）。即 ffmpeg
+编码器写入 vflip + 解码器翻回，自洽；ATJ 固件直显（实机定案）；VLC 无此补偿
+→ 显示原始比特流 = vflip(显示内容) = 倒置。**原版工具文件在 VLC 中同样倒置**
+（lianqu1980-160x120.amv 实测），本项目输出与原版行为完全一致，非 bug。
+PC 预览建议用 ffplay/PotPlayer 等尊重该约定的播放器，或 VLC 开垂直翻转。
+
 ## 下阶段
 
 1. ~~idx1 实效验证~~ ✅ 已完成（见上节：快进硬依赖 idx1，AMV 尾区已补写并实机定案）。
