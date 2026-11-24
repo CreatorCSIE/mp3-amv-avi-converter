@@ -336,6 +336,25 @@ JPEG 头 APP0/DQT/SOF0/DHT/SOS）。
   许可证逐字实查：FFmpeg LGPL-3.0/GPL-2.0 按构建、PySide6 LGPL-3.0、
   qfluentwidgets GPL-3.0、numpy BSD-3、atj2157-toolkit MIT）。
 
+## C++ 化路线调研（2026-11-24，方向已定、暂不动工）
+
+用户意向：核心与壳全 C++（Fluent 设计语言不变），从 PySide6 分支切新分支；
+Python 版永久保留作金标准预言机。计划：Phase0 金标准语料 → Phase1 libamvconv
+（确定性 float64 DCT 逐位对齐 numpy einsum 收缩序 + _entropy.c 复用 + 容器 +
+ffmpeg 管道）→ Phase2 Qt C++ 壳 → Phase3 windeployqt 打包。
+
+C++ 侧 Fluent 组件库候选（实查）：
+
+| 库 | 许可 | 状态 | 备注 |
+|---|---|---|---|
+| **Fairy-Oracle-Sanctuary/Qt-Fluent-Widgets** | GPL-3.0 | 活跃，Qt5.15.2/6.x | PyQt-Fluent-Widgets 的**原生 C++ 移植**，API 对应现 Python 版可近似 1:1 翻译；静态库、三主题、Gallery 示例、跨平台、MSVC /FS |
+| C++ 版 QFluentWidgets（zhiyiYo 官方） | 闭源 | 商业买断 | 组件最全，付费 |
+| zhiyiYo/QFluentKit | GPL-3.0 | 停维护 | 早期 C++ 版，需 vendor+修 Qt6 |
+| zhuzichu520/FluentUI | MIT | 活跃(2025-03) | QML 栈，UI 层需重写而非翻译 |
+
+首选 Qt-Fluent-Widgets（GPL 兼容 + 翻译成本最低）；动工前需实际 clone 编译验证
+Gallery。
+
 ## GUI 环境坑（2026-11-24 实测）
 
 - **PySide6 6.12.0 wheel 在本机（Win11 26100）QtCore DLL load failed 127**：Qt6Core
