@@ -47,11 +47,16 @@ jobs:
           Start-Sleep -Seconds 20
           if (-not $p.HasExited -or $p.ExitCode -eq 0) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; "GUI-SMOKE-OK" }
           else { "gui exe 提前退出 code=$($p.ExitCode)"; exit 1 }
-      - name: Release（notes 取附注 tag 正文）
+      - name: Release（notes 取附注 tag 正文，走 API——checkout@v4 会把 tag peel 成 commit，本地 git tag -l 读不到附注正文）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >
-          git tag -l --format='%(contents)' ${{ github.ref_name }} | Out-File -Encoding utf8 notes.md;
+        run: |
+          $obj = gh api "repos/${{ github.repository }}/git/refs/tags/${{ github.ref_name }}" --jq '.object' | ConvertFrom-Json
+          if ($obj.type -eq 'tag') {
+            gh api "repos/${{ github.repository }}/git/tags/$($obj.sha)" --jq '.message' | Out-File -Encoding utf8 notes.md
+          } else {
+            "" | Out-File -Encoding utf8 notes.md
+          }
           if ((Get-Content notes.md -Raw).Trim()) {
             gh release create ${{ github.ref_name }} amvconv-cli-${{ github.ref_name }}.exe amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --notes-file notes.md
           } else {
