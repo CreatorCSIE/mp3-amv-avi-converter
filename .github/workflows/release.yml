@@ -19,7 +19,14 @@ jobs:
           python -m pip install -U pip
           pip install -e ".[gui]"
           pip install nuitka ordered-set
-      - name: Build（Nuitka onefile，PySide6 插件捆 Qt DLL）
+      - name: Build CLI（Nuitka onefile，控制台）
+        run: >
+          python -m nuitka --standalone --onefile
+          --assume-yes-for-downloads
+          --include-package=amvconv
+          --output-filename=amvconv-cli-${{ github.ref_name }}.exe
+          cli_entry.py
+      - name: Build GUI（Nuitka onefile，PySide6 插件捆 Qt DLL）
         run: >
           python -m nuitka --standalone --onefile
           --windows-console-mode=disable
@@ -29,21 +36,24 @@ jobs:
           --include-package-data=qfluentwidgets
           --output-filename=amvconv-gui-${{ github.ref_name }}.exe
           gui_entry.py
-      - name: Smoke（exe 可启动，offscreen 冒烟后自退）
+      - name: Smoke（cli profiles 退出 0；gui offscreen 存活 20s）
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
+          .\amvconv-cli-${{ github.ref_name }}.exe profiles
+          if ($LASTEXITCODE -ne 0) { "cli 冒烟失败 code=$LASTEXITCODE"; exit 1 }
+          "CLI-SMOKE-OK"
           $p = Start-Process .\amvconv-gui-${{ github.ref_name }}.exe -PassThru
           Start-Sleep -Seconds 20
-          if (-not $p.HasExited -or $p.ExitCode -eq 0) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; "SMOKE-OK" }
-          else { "exe 提前退出 code=$($p.ExitCode)"; exit 1 }
+          if (-not $p.HasExited -or $p.ExitCode -eq 0) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; "GUI-SMOKE-OK" }
+          else { "gui exe 提前退出 code=$($p.ExitCode)"; exit 1 }
       - name: Release（notes 取附注 tag 正文）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
           git tag -l --format='%(contents)' ${{ github.ref_name }} | Out-File -Encoding utf8 notes.md;
           if ((Get-Content notes.md -Raw).Trim()) {
-            gh release create ${{ github.ref_name }} amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --notes-file notes.md
+            gh release create ${{ github.ref_name }} amvconv-cli-${{ github.ref_name }}.exe amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --notes-file notes.md
           } else {
-            gh release create ${{ github.ref_name }} amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --generate-notes
+            gh release create ${{ github.ref_name }} amvconv-cli-${{ github.ref_name }}.exe amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --generate-notes
           }

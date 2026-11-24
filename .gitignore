@@ -35,6 +35,7 @@ src/amvconv/core/_entropy.so
 *.dist/
 *.onefile-build/
 amvconv-gui-*.exe
+amvconv-cli-*.exe
 
 # IDE / OS
 .idea/
