@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from qfluentwidgets import (
     BodyLabel, CaptionLabel, CardWidget, FluentIcon, PushButton,
-    StrongBodyLabel, SubtitleLabel,
+    SingleDirectionScrollArea, StrongBodyLabel, SubtitleLabel,
 )
 
 REPO_URL = "https://github.com/CreatorCSIE/mp3-amv-avi-converter"
@@ -55,7 +55,17 @@ class AboutInterface(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("aboutInterface")
-        lay = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = SingleDirectionScrollArea(self, orient=Qt.Vertical)
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea{background:transparent;border:none}")
+        content = QWidget()
+        content.setObjectName("aboutContent")
+        content.setStyleSheet("#aboutContent{background:transparent}")
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
+        lay = QVBoxLayout(content)
         lay.setContentsMargins(36, 20, 36, 32)
         lay.setSpacing(14)
         lay.addWidget(SubtitleLabel("关于"))
