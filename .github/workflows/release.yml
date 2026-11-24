@@ -7,6 +7,8 @@ on:
 jobs:
   build-release:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,7 +33,7 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          $p = Start-Process dist\amvconv-gui-${{ github.ref_name }}.exe -PassThru
+          $p = Start-Process .\amvconv-gui-${{ github.ref_name }}.exe -PassThru
           Start-Sleep -Seconds 20
           if (-not $p.HasExited -or $p.ExitCode -eq 0) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; "SMOKE-OK" }
           else { "exe 提前退出 code=$($p.ExitCode)"; exit 1 }
@@ -41,7 +43,7 @@ jobs:
         run: >
           git tag -l --format='%(contents)' ${{ github.ref_name }} | Out-File -Encoding utf8 notes.md;
           if ((Get-Content notes.md -Raw).Trim()) {
-            gh release create ${{ github.ref_name }} dist/amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --notes-file notes.md
+            gh release create ${{ github.ref_name }} amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --notes-file notes.md
           } else {
-            gh release create ${{ github.ref_name }} dist/amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --generate-notes
+            gh release create ${{ github.ref_name }} amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --generate-notes
           }
