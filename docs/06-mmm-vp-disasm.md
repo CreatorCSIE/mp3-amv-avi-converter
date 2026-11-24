@@ -307,4 +307,28 @@ JPEG 头 APP0/DQT/SOF0/DHT/SOS）。
 1. ~~idx1 实效验证~~ ✅ 已完成（见上节：快进硬依赖 idx1，AMV 尾区已补写并实机定案）。
 2. ~~实现 AVI writer 时落实 SOI@336 / AVI1@342 布局，并用预言机 AVI1 测试卡关。~~ ✅ 已完成（且实机定案）
 3. ~~逆向 AVI_EncDLL.dll~~ 可降级为佐证：完整约定集已由 T23≡T3 逐字节复现逆出，DLL 非必需。
-4. （待定）AVI writer 接入 cli.py / gui.py 管线。
+4. ~~AVI writer 接入 cli.py / gui.py 管线~~ ✅ 已完成（CLI `--avi/--q`；GUI 批量队列
+   +进度/取消+预览，见下节）。核心层为支持 GUI 增加：`ffmpeg.convert` 与
+   `aviwriter.convert_avi` 的 `progress(done,total)/cancel(Event)` 参数；
+   `core/preview.py` 流式解码预览（ffmpeg 的 AMV 解码器 flipped=1，输出即设备显示
+   取向；AMV 容器 probe 时长为 0，用 01wb 块数×1017/22050 容器级兜底）。
+
+## 官方套件安装目录盘点（2026-11-24，用户机 `C:\Program Files (x86)\媒体播放器管理工具 4.46\`）
+
+- `AMVConverter\`：即逆向对象本体——`AMV_EncDLL.dll`(94208B，T_ORIG 出处)、
+  `AVI_EncDLL.dll`（与 EncDLL 同尺寸，两模式共用编码器旁证）、`avcodec-54.dll`
+  （FFmpeg 1.0 实锤）、`amv.ax`（**DirectShow AMV 解码滤镜**——原厂商的 PC 播放方案，
+  注册后 WMP/MPC-HC 等 DShow 播放器可播 AMV，补全 VLC/PotPlayer 缺陷叙事）
+- `AMVPlayer\`：官方 PC 播放器 `amvplayer.exe` + `AMV_DecDLL.dll`(73728B，即逆向
+  过的 DecDLL 本尊) + SDL.dll；`AmvPlayer.ini` 记录 UI 档位索引持久化
+  （VIDEOWH/VIDEOFRAME）与 MTVFILEEXTEND=amv
+- 后续调研（未做）：amv.ax 逆向（交叉验证 DecDLL 表结论）；amvplayer.exe 作
+  解码 oracle；PotPlayer 根因分析路线（WER LocalDumps → WinDbg → 变异矩阵）
+
+## GUI 环境坑（2026-11-24 实测）
+
+- **PySide6 6.12.0 wheel 在本机（Win11 26100）QtCore DLL load failed 127**：Qt6Core
+  动态导入 `icuuc.dll`，解析到 System32 的 MS ICU 72（conda 构建为 73，符号后缀
+  `_73` 不匹配；20 个 ucnv_* 符号名虽在但版本组合仍致加载失败）。anaconda base 与
+  venv 同现。**解决：钉 PySide6 6.9.3**（pyproject gui extra 已加 `<6.12`），
+  配 PySide6-Fluent-Widgets 1.11.3（GPL-3.0 与本项目 license 兼容）

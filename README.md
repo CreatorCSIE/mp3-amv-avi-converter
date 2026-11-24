@@ -27,7 +27,7 @@
 ```
 ┌────────────────────────────────────────────┐
 │  壳层（可替换）                                │
-│   cli.py（当前主力）            gui/ (PySide6 骨架) │
+│   cli.py（amv-conv）        gui/（PySide6 + Fluent-Widgets） │
 ├────────────────────────────────────────────┤
 │  core/（壳无关，纯 Python）                     │
 │   amvenc.py     AMV 原生编码器（复刻原版比特流）    │
@@ -40,7 +40,9 @@
 └────────────────────────────────────────────┘
 ```
 
-- 语言：Python ≥ 3.10（numpy）；GUI 依赖 PySide6（可选）；C 核需 gcc（缺则自动回退纯 Python）
+- 语言：Python ≥ 3.10（numpy）；GUI 依赖 PySide6 + PySide6-Fluent-Widgets（可选；
+  **PySide6 6.12 wheel 在 Windows 上因系统 ICU 版本冲突无法加载，用 6.9.x**）；
+  C 核需 gcc（缺则自动回退纯 Python）
 
 ## 快速开始
 
@@ -49,8 +51,9 @@ pip install -e .[gui,dev]          # 或仅 pip install -e .
 
 amv-conv profiles                   # 打印逆向得到的 12 档参数表
 amv-conv convert in.mp4 out.amv -s 160x120 -f 30
+amv-conv convert in.mp4 out.avi -s 160x120 --avi [--q 4]   # AVI 模式（PC 播放器友好）
 amv-conv inspect out.amv            # 容器结构摘要（与原版输出对比用）
-python -m amvconv.gui.main_window   # GUI 骨架
+amv-conv-gui                        # GUI：批量队列 + 进度/取消 + 双击预览
 pytest                              # 回归测试
 ```
 
@@ -61,9 +64,9 @@ pytest                              # 回归测试
 | 逆向记录（ini/DLL/MMM_VP.AL 解析器/量化表/灰阶探针） | ✅ 完成，见 docs/01–06 |
 | AMV 原生编码器（纯 Python + C 核） | ✅ 完成，128x128/320x240/160x120 实机全过 |
 | 容器 idx1 尾区（快进/seek 固件硬依赖） | ✅ 完成，实机快进验证通过 |
-| AVI 模式 writer（原版头部/AVI1/4B 对齐/idx1） | ✅ 完成，实机验证通过（暂未接入 CLI） |
+| AVI 模式 writer（原版头部/AVI1/4B 对齐/idx1） | ✅ 完成，实机验证通过，CLI `--avi` 已接入 |
 | 画质对齐（灰底消除/方向/拉伸） | ✅ 实机与原版持平 |
-| GUI | 🌱 骨架 |
+| GUI（Fluent-Widgets：批量队列/进度/取消/预览） | ✅ 完成（预览为 ffmpeg 解码画面 = 设备显示取向） |
 
 ## 已知格式要点（速览，证据见 docs/06）
 

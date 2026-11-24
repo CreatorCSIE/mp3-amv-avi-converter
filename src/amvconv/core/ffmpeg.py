@@ -24,6 +24,10 @@ class FfmpegNotFoundError(RuntimeError):
     pass
 
 
+class _Cancelled(Exception):
+    """内部信号：cancel Event 置位时中断帧生成器。"""
+
+
 def find_binaries() -> tuple[str, str]:
     ff = shutil.which("ffmpeg")
     fp = shutil.which("ffprobe")
@@ -97,7 +101,8 @@ def _read_exact(stream, size: int) -> bytes:
     return bytes(buf)
 
 
-def convert(job: ConversionJob) -> ConversionResult:
+def convert(job: ConversionJob, progress=None, cancel=None) -> ConversionResult:
+    """AMV 转换。progress(done, total) 逐帧回调；cancel 为 threading.Event，置位即中止。"""
     ff, _ = find_binaries()
     p = job.profile
     if p.audio_block_samples is None:
@@ -122,7 +127,9 @@ def convert(job: ConversionJob) -> ConversionResult:
 
         def frames():
             last = None
-            for _ in auds:  # 1:1 交织：视频不足时重复末帧补齐
+            for i, a in enumerate(auds):  # 1:1 交织：视频不足时重复末帧补齐
+                if cancel is not None and cancel.is_set():
+                    raise _Cancelled
                 raw = _read_exact(proc.stdout, frame_sz)
                 if len(raw) >= frame_sz:
                     y = np.frombuffer(raw[:fy], np.uint8).reshape(h, w)
@@ -133,12 +140,18 @@ def convert(job: ConversionJob) -> ConversionResult:
                 elif last is None:
                     break
                 y, u, v = last
+                if progress is not None:
+                    progress(i + 1, len(auds))
                 yield amvenc.encode_frame(np.ascontiguousarray(y),
                                           np.ascontiguousarray(u),
                                           np.ascontiguousarray(v))
 
         try:
             job.target.write_bytes(amvenc.build_file(donor, frames()))
+        except _Cancelled:
+            proc.terminate()
+            return ConversionResult(ok=False, command=donor_cmd, returncode=-2,
+                                    stderr_tail="已取消")
         finally:
             proc.stdout.close()
             proc.stderr.close()

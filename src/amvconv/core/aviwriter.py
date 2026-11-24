@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import struct
 import subprocess
 from pathlib import Path
@@ -60,14 +61,15 @@ _SOF0_POS = _ORIG_FRAME_HDR.index(b"\xff\xc0")
 
 
 def build_ffmpeg_command(source: Path, tmp: Path, width: int, height: int,
-                         ffmpeg: str = "ffmpeg", extra_video_args=(), extra_audio_args=()) -> list[str]:
-    """ffmpeg 侧：mjpeg + adpcm_ima_wav，1:1 交织，帧率对齐音频块周期。"""
+                         ffmpeg: str = "ffmpeg", extra_video_args=(), extra_audio_args=(),
+                         q: int = 4) -> list[str]:
+    """ffmpeg 侧：mjpeg + adpcm_ima_wav，1:1 交织，帧率对齐音频块周期。q=JPEG 质量（2-31，越小越好）。"""
     return [
         ffmpeg, "-hide_banner", "-y", "-i", str(source),
         "-r", f"{AUDIO_RATE}/{AUDIO_SAMPLES}",
         "-vf", f"scale={width}:{height},format=yuvj420p",
         # 原版工具硬拉伸填满（实测 T3ORIG 与拉伸源相关性远高于加边），不保比例、不加黑边
-        "-c:v", "mjpeg", "-q:v", "4",
+        "-c:v", "mjpeg", "-q:v", str(q),
         # -huffman default：扫描数据必须按标准表编码（与 _ORIG_FRAME_HDR 注入的表一致）；
         # 新版默认 optimal 会按帧内容生成退化表，固件硬解不认（docs/06 实机 A/B）
         "-huffman", "default", *extra_video_args,
@@ -168,14 +170,46 @@ def remux(raw: bytes, width: int, height: int, frame_filter=None) -> bytes:
 
 
 def convert_avi(source: Path, target: Path, width: int, height: int,
-                ffmpeg: str = "ffmpeg", tmp: Path | None = None) -> subprocess.CompletedProcess:
-    """端到端：ffmpeg → 临时 AVI → 固件布局重封装。"""
+                ffmpeg: str = "ffmpeg", tmp: Path | None = None,
+                progress=None, cancel=None, duration: float | None = None,
+                q: int = 4) -> subprocess.CompletedProcess:
+    """端到端：ffmpeg → 临时 AVI → 固件布局重封装。
+
+    progress(done_frames, total_frames|None)：从 ffmpeg stderr 的 frame= 行解析；
+    total 需调用方传源时长（秒）估算（音频驱动 22050/1017≈21.68fps），不传则 None。
+    cancel 为 threading.Event，置位即 terminate ffmpeg 并清理临时文件。
+    """
     tmp = tmp or target.with_suffix(".raw.avi")
-    cmd = build_ffmpeg_command(source, tmp, width, height, ffmpeg)
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    cmd = build_ffmpeg_command(source, tmp, width, height, ffmpeg, q=q)
+    total = round(duration * AUDIO_RATE / AUDIO_SAMPLES) if duration else None
+    proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True,
+                            encoding="utf-8", errors="replace")
+    cancelled = False
     try:
+        buf, last = "", 0
+        assert proc.stderr is not None
+        while True:
+            chunk = proc.stderr.read(256)
+            if not chunk:
+                break
+            buf += chunk
+            m = re.findall(r"frame=\s*(\d+)", buf)
+            if m:
+                last = int(m[-1])
+                buf = ""
+                if progress is not None:
+                    progress(last, total)
+            if cancel is not None and cancel.is_set():
+                proc.terminate()
+                cancelled = True
+                break
+        proc.wait()
+        if cancelled:
+            return subprocess.CompletedProcess(cmd, -2, None, "已取消")
         if proc.returncode == 0:
             target.write_bytes(remux(tmp.read_bytes(), width, height))
     finally:
+        if proc.stderr is not None:
+            proc.stderr.close()
         tmp.unlink(missing_ok=True)
-    return proc
+    return subprocess.CompletedProcess(cmd, proc.returncode, None, buf[-2000:])

@@ -30,6 +30,22 @@ def _cmd_profiles(args: argparse.Namespace) -> int:
 
 
 def _cmd_convert(args: argparse.Namespace) -> int:
+    if args.avi:
+        from .core import aviwriter, ffmpeg as ffmod
+
+        w, h = (int(v) for v in args.size.lower().split("x"))
+        try:
+            dur = float(ffmod.probe(Path(args.src))["format"].get("duration", 0)) or None
+        except Exception:
+            dur = None
+        proc = aviwriter.convert_avi(Path(args.src), Path(args.dst), w, h, q=args.q,
+                                     duration=dur,
+                                     progress=lambda d, t: print(f"\r{d}{'' if t is None else f'/{t}'} frames",
+                                                                 end="", file=sys.stderr))
+        print()
+        print("OK" if proc.returncode == 0 else f"FAIL rc={proc.returncode}\n{(proc.stderr or '')[-800:]}")
+        return 0 if proc.returncode == 0 else 1
+
     from .core import ffmpeg
 
     w, h = (int(v) for v in args.size.lower().split("x"))
@@ -61,12 +77,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--source", choices=["ui", "internal"], default="ui")
     p.set_defaults(fn=_cmd_profiles)
 
-    p = sub.add_parser("convert", help="转换为 .amv")
+    p = sub.add_parser("convert", help="转换为 .amv（--avi 转原版 AVI 模式 .avi）")
     p.add_argument("src")
     p.add_argument("dst")
     p.add_argument("-s", "--size", default="160x120", help="如 160x120")
     p.add_argument("-f", "--fps", type=int, default=15)
-    p.add_argument("--flip", type=int, default=0, help="BMPADJUST 0~5")
+    p.add_argument("--flip", type=int, default=0, help="BMPADJUST 0~5（仅 AMV）")
+    p.add_argument("--avi", action="store_true",
+                   help="AVI 模式（固件兼容布局，帧率恒 ~21.68 音频驱动，PC 播放器友好）")
+    p.add_argument("--q", type=int, default=4, help="AVI 模式 JPEG 质量 2-31，越小越好")
     p.set_defaults(fn=_cmd_convert)
 
     p = sub.add_parser("inspect", help="AMV 容器结构摘要（对比测试用）")
