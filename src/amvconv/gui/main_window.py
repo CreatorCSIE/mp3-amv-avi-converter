@@ -287,6 +287,9 @@ class MainWindow(FluentWindow):
         self.resize(980, 680)
         self.convert_iface = ConvertInterface(self)
         self.addSubInterface(self.convert_iface, FluentIcon.VIDEO, "转换")
+        from .preview_interface import PreviewInterface
+        self.preview_iface = PreviewInterface(self)
+        self.addSubInterface(self.preview_iface, FluentIcon.ZOOM, "预览")
         from .about_interface import AboutInterface
         from qfluentwidgets import NavigationItemPosition
         self.addSubInterface(AboutInterface(self), FluentIcon.INFO, "关于",

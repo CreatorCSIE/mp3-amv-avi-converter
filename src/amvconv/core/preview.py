@@ -51,6 +51,9 @@ class Preview:
             raise ValueError("无视频流")
         self.width = int(v["width"])
         self.height = int(v["height"])
+        a = next((s for s in info["streams"] if s.get("codec_type") == "audio"), None)
+        self.audio_rate = int(a["sample_rate"]) if a and a.get("sample_rate") else 0
+        self.audio_ch = int(a.get("channels") or 1) if a else 0
         try:
             self.fps = float(Fraction(v.get("avg_frame_rate", "0/1")))
         except (ValueError, ZeroDivisionError):
@@ -71,7 +74,8 @@ class Preview:
         self._proc = subprocess.Popen(
             [self.ff, "-hide_banner", "-v", "error", "-ss", f"{seconds:.3f}",
              "-i", str(self.path), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-            stdout=subprocess.PIPE, bufsize=self.width * self.height * 3)
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            bufsize=self.width * self.height * 3)
         self._pos = seconds
 
     def read(self) -> np.ndarray | None:
