@@ -325,6 +325,37 @@ JPEG 头 APP0/DQT/SOF0/DHT/SOS）。
 - 后续调研（未做）：amv.ax 逆向（交叉验证 DecDLL 表结论）；amvplayer.exe 作
   解码 oracle；PotPlayer 根因分析路线（WER LocalDumps → WinDbg → 变异矩阵）
 
+## DecDLL 数据段深扫（2026-11-25）
+
+AMVPlayer\ 与 AMVConverter\ 两份 `AMV_DecDLL.dll` SHA256 一致（F2BDB004…4F56B）。
+导出表仅 3 函数：`AmvInforInit`@0x1630 / `AmvDecoder`@0x16d0 / `AmvClose`@0x17d0。
+`.data` 段（VA 0x1000b000 起，镜像静态已初始化）宝藏：
+
+1. **标准 JPEG Annex K Huffman 表全套实锤**——DC 亮度 BITS@0xb532
+   （`01 05 01 01 01 01 01 01 00…`）、DC 色度 BITS@0xb542（`03 01…01 00…`）、
+   DC VALS@0xb559（1–0x0b）、AC 亮度 VALS@0xb659（162B 逐字节=标准表）。
+   → **AMV 熵编码用标准固定表，无自定义 VLC**，与本项目编码器比特流复刻互证
+   （docs/01 的 Huffman 结论获解码端独立佐证）。
+2. **容器解析标签表**@0xb030-0xb0b8：`movi/strf/strh/strl/amvh/hdrl/LIST/AMV /
+   RIFF/00dc/01wb` + 错误文案 "Input not a AMV file - starts not with "RIFF""。
+   注意 `amvh`/`strl` 也在查找列表——解码器容忍的额外 FourCC（本项目未产出，
+   但说明原版解析器比 mmm_vp walker 覆盖面宽）。
+3. **IMA-ADPCM 标准表逐字节吻合**：step@0xb108（7,8,9,…,2457）、index 调整表
+   两份副本@0xb0c8/0xb0e8（-1,-1,-1,-1,2,4,6,8,…）→ 音频路径 = 标准 IMA，
+   无任何厂商魔改（376B 块假设再获旁证）。
+4. **未知 64×i16 表**@0xb430：`9,9,12,24,50×4 | 9,11,13,33,50×4 | 12,13,28,50×4 |
+   24,33,50×6 | 50×32`（自然序，50 疑似哨兵）。形态像 DCT 频带码率成本表
+   （左上角低频代价小、其余封顶），但出现在解码器中语义未定——**不定案**，
+   候选解释：① 编码器残留（Enc/Dec 同源代码）② 错误隐藏权重。待交叉
+   EncDLL 同偏移比对。
+5. **无 YUV→RGB 浮点/双精度常量**（全文件扫描 1.402/0.344136/0.714136/1.772/
+   0.299/0.587/0.114/1.164 零命中）→ DecDLL 大概率直接输出 YUV，RGB 转换在
+   amvplayer.exe + SDL 层（或整数定点内联）。设备色彩语义（full-range 假设）
+   不受影响，但 PC 官方播放链的色彩矩阵归属定了：**不在 DecDLL**。
+6. 字符串区无调试符号、无自定义错误文案（除容器报错）——Release 构建，
+   静态逆向天花板即此；amv.ax（118784B，独立 DirectShow 滤镜）仍是下一个
+   调研对象，可交叉验证 1/3 表结论并可能含色彩矩阵。
+
 ## 预览架构调研（2026-11-24，QMediaPlayer 实测）
 
 - Qt 6.9 多媒体默认 FFmpeg 后端：AMV/AVI 两容器均能打开（无 errorOccurred），
