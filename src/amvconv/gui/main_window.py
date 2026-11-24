@@ -287,6 +287,10 @@ class MainWindow(FluentWindow):
         self.resize(980, 680)
         self.convert_iface = ConvertInterface(self)
         self.addSubInterface(self.convert_iface, FluentIcon.VIDEO, "转换")
+        from .about_interface import AboutInterface
+        from qfluentwidgets import NavigationItemPosition
+        self.addSubInterface(AboutInterface(self), FluentIcon.INFO, "关于",
+                             position=NavigationItemPosition.BOTTOM)
         self.navigationInterface.setExpandWidth(180)
 
 

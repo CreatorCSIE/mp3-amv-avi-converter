@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -41,6 +42,9 @@ class PreviewDialog(QDialog):
         row.addWidget(self.play_btn)
         row.addWidget(self.slider, 1)
         row.addWidget(self.time_lbl)
+        ff_btn = PushButton(FluentIcon.PLAY_SOLID, "ffplay 播放（含声音）")
+        ff_btn.clicked.connect(self._open_ffplay)
+        row.addWidget(ff_btn)
         lay.addLayout(row)
 
         self._show(self.pv.read())
@@ -83,6 +87,20 @@ class PreviewDialog(QDialog):
         if pix.width() > MAX_W or pix.height() > MAX_H:
             pix = pix.scaled(MAX_W, MAX_H, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.img.setPixmap(pix)
+
+    def _open_ffplay(self):
+        """带声音的完整播放交给 ffplay（Qt 多媒体后端受原版 quirk 影响不可用，见 docs/06）。"""
+        import shutil
+        import subprocess
+        from ..core.ffmpeg import find_binaries
+        ff, _ = find_binaries()
+        fp = Path(ff).with_name("ffplay.exe" if sys.platform == "win32" else "ffplay")
+        if not fp.is_file():
+            fp = Path(shutil.which("ffplay") or "")
+        if fp.is_file():
+            subprocess.Popen([str(fp), "-autoexit", "-log", "error", str(self.pv.path)])
+        else:
+            self.time_lbl.setText("未找到 ffplay")
 
     def closeEvent(self, e):
         self._timer.stop()

@@ -325,6 +325,17 @@ JPEG 头 APP0/DQT/SOF0/DHT/SOS）。
 - 后续调研（未做）：amv.ax 逆向（交叉验证 DecDLL 表结论）；amvplayer.exe 作
   解码 oracle；PotPlayer 根因分析路线（WER LocalDumps → WinDbg → 变异矩阵）
 
+## 预览架构调研（2026-11-24，QMediaPlayer 实测）
+
+- Qt 6.9 多媒体默认 FFmpeg 后端：AMV/AVI 两容器均能打开（无 errorOccurred），
+  但**时长读数继承原版 quirk**——`strh_v.length=2` 使 demuxer 报 92ms 即
+  EndOfMedia（ffprobe 对原版参考文件同样报 0.092244s，佐证 quirk 复刻忠实）。
+  **QMediaPlayer 方案不可用，预览保留 ffmpeg rawvideo 管道**（逐帧 RGB，
+  方向=设备显示取向）；带声音的完整播放由预览窗"ffplay 播放"按钮外包。
+- 关于页内容结构借鉴 Attic 启动器 SettingsAbout（头区/法律声明/引用项目列表，
+  许可证逐字实查：FFmpeg LGPL-3.0/GPL-2.0 按构建、PySide6 LGPL-3.0、
+  qfluentwidgets GPL-3.0、numpy BSD-3、atj2157-toolkit MIT）。
+
 ## GUI 环境坑（2026-11-24 实测）
 
 - **PySide6 6.12.0 wheel 在本机（Win11 26100）QtCore DLL load failed 127**：Qt6Core
