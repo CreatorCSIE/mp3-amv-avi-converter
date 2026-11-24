@@ -30,6 +30,12 @@ out/
 src/amvconv/core/_entropy.dll
 src/amvconv/core/_entropy.so
 
+# Nuitka 打包产物
+*.build/
+*.dist/
+*.onefile-build/
+amvconv-gui-*.exe
+
 # IDE / OS
 .idea/
 .vscode/
