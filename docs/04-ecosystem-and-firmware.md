@@ -49,7 +49,9 @@ USB 枚举 MSC `10d6:1101`）。AMV = **A**ctions **M**edia **V**ideo，原工�
 
 ## 对本项目的行动项
 
-- [ ] 用户下载官方 M7 固件 zip → 我方静态解包（只读）
-- [ ] clone zanzipanzi toolkit → 用 mmm_vp_walker_emu 校验我们的 writer 输出
-- [ ] 从固件提取量化表 → 画质对齐原版（解开 VFBS/码率之谜）
-- [ ] M7 实机 A/B：原版 / ffmpeg 裸 / 重写版 三样本（快进/seek 验证 idx1 理论）
+- [x] 官方固件获取 → M7 全部 12 变体 + X02 完整解包（docs/05）
+- [x] clone zanzipanzi toolkit → mmm_vp_walker_emu 预言机已用于 writer 校验（docs/06）
+- [x] 量化表提取 → T_ORIG_Y/C 提自 AMV_EncDLL VA 0xe348（自然序），设备解码模型
+      pixel = IDCT(q×T)/8+128 实机定案；Huffman = 固件内置标准表（docs/06）
+- [x] M7 实机 A/B → 三档全过（128x128@30 / 320x240@25 / 160x120@30），
+      idx1 快进硬依赖定案，AMV 模式与原版功能对齐（docs/06）

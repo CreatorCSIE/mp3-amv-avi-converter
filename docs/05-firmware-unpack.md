@@ -37,6 +37,9 @@ M7 vs X02 模块 diff：kernel.drv/card.drv/fat32n.drv 等驱动尺寸不同（N
 
 - 标准表原值/扫描序均无命中；aeMP3 的 `[15,19,22,25...]` 是 MP3 音频量化表（假阳性）
 - 推测：mmm_vp.al 内嵌定制/缩放表，需反汇编（下阶段：zanzipanzi `mmm_vp_walker_emu.py` Unicorn 预言机）
+- **后续（2026-11-23）**：表实际不在固件 mmm_vp.al——量化表 T_ORIG_Y/C 提取自
+  **AMV_EncDLL.dll VA 0xe348**（自然序），Huffman 为固件内置标准表（与 AVI 模式
+  原版帧头 DHT 逐字节一致）。见 docs/06 实机标定节。
 
 ## 安全边界
 
@@ -44,6 +47,6 @@ M7 vs X02 模块 diff：kernel.drv/card.drv/fat32n.drv 等驱动尺寸不同（N
 
 ## 下阶段
 
-1. Unicorn 跑 mmm_vp.al 头解析器 → 校验重写版 writer 的 amvh/AVI1/idx1 布局
-2. 反汇编找量化表 → VFBS 画质映射
-3. M7 实机 A/B（原版 vs 我们输出，快进/seek 验证 idx1 理论）
+1. ~~Unicorn 跑 mmm_vp.al 头解析器 → 校验重写版 writer~~ ✅（walker_emu + 预言机校验，docs/06）
+2. ~~反汇编找量化表~~ ✅（在 EncDLL 不在固件，见上节后续）
+3. ~~M7 实机 A/B~~ ✅（三档 + idx1 全定案，docs/06）

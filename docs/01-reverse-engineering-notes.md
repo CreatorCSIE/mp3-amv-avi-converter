@@ -1,5 +1,12 @@
 # 逆向记录 01 — 静态摸底与 ffmpeg 实测（2026-11-22）
 
+> **状态（2026-11-24）**：研究日志。下方"待验证清单"已解决：字节级差异（量化表
+> T_ORIG/Huffman 标准表/无 RST，见 06）、amvh 核心字段（+0 帧间隔µs/+32/+36 宽高/
+> +40 fps/+52 时长秒）、idx1/AMV_END_（快进硬依赖，实机定案）、非整除帧率策略
+> （AMV 恒取最大候选+复制补齐，AVI 音频驱动 512B 块，见 02/03）、BMP bottom-up
+> quirk（即 vflip 比特流，BMPADJUST 1~5 未穷举）。仍未查：Insertpic/Insertwave
+> 注入点、amvh +16/+44/+48 语义。
+
 目标程序：`C:\Program Files (x86)\媒体播放器管理工具 4.46\AMVConverter`
 
 ## 1. 程序栈识别
