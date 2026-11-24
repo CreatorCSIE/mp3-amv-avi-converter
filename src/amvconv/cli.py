@@ -69,7 +69,24 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
+def _ensure_console_utf8() -> None:
+    """Windows 控制台默认跟随 ANSI 代码页（非中文系统 print 中文直接 UnicodeEncodeError，
+    CI 实锤 cp1252）：把进程输出代码页切到 UTF-8 并重配 stdio；重定向到日志/管道无害。"""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+        except OSError:
+            pass
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _ensure_console_utf8()
     ap = argparse.ArgumentParser(prog="amv-conv", description="AMV 转换器（逆向重写）")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
