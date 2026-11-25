@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, PySide6]
+    branches: [main, PySide6, "C++"]
   pull_request:
 
 jobs:
