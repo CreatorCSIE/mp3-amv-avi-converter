@@ -44,13 +44,13 @@ jobs:
         run: pip install -e .
       - name: Build
         run: |
-          cmake -S cpp -B cpp/build -G "MinGW Makefiles"
-          cmake --build cpp/build
+          cmake -S src/cpp -B src/cpp/build -G "MinGW Makefiles"
+          cmake --build src/cpp/build
       - name: 语料再生
         run: python scripts/gen_golden.py
       - name: 帧级逐位（内核回归）
         run: |
           python scripts/gen_frame_golden.py
-          cpp\build\enc_test.exe golden\frames
+          src\cpp\build\enc_test.exe golden\frames
       - name: 文件级逐位（57 条全量）
         run: python scripts/compare_cpp_golden.py

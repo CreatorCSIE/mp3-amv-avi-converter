@@ -1,8 +1,8 @@
 """Phase1 文件级逐位比对 —— C++ CLI 产物 vs golden/manifest.json（Python 预言机）。
 
 前置：
-  python scripts/gen_golden.py            # 语料 + manifest（同机 ffmpeg）
-  cmake --build cpp/build                 # 产 cpp/build/amvconv_cli.exe
+  python scripts/gen_golden.py                 # 语料 + manifest（同机 ffmpeg）
+  cmake --build src/cpp/build                  # 产 src/cpp/build/amvconv_cli.exe
 
 用法：
   python scripts/compare_cpp_golden.py [--exe PATH] [--only ID_FILTER]
@@ -32,14 +32,14 @@ def sha256_file(path: Path) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--exe", default=str(ROOT / "cpp" / "build" /
+    ap.add_argument("--exe", default=str(ROOT / "src" / "cpp" / "build" /
                                          ("amvconv_cli.exe" if sys.platform == "win32" else "amvconv_cli")))
     ap.add_argument("--only", default="", help="只跑 id 含此子串的条目")
     args = ap.parse_args()
 
     exe = Path(args.exe)
     if not exe.is_file():
-        raise SystemExit(f"C++ CLI 不存在：{exe}（先 cmake --build cpp/build）")
+        raise SystemExit(f"C++ CLI 不存在：{exe}（先 cmake --build src/cpp/build）")
     manifest_path = ROOT / "golden" / "manifest.json"
     if not manifest_path.is_file():
         raise SystemExit("缺 golden/manifest.json（先跑 scripts/gen_golden.py）")

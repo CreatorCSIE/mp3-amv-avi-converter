@@ -1,4 +1,4 @@
-"""从 Python 单一事实源导出 cpp/src/tables.h（逐位一致的常量快照）。
+"""从 Python 单一事实源导出 src/cpp/src/tables.h（逐位一致的常量快照）。
 
 DCT_M/TY/TC 直接取 amvenc 计算结果（double 位型十六进制打印，杜绝任何字面量
 舍入差异）；ZIG 与哈夫曼 code/len 表同取 amvenc 运行时值。改表必须重跑本脚本。
@@ -58,7 +58,7 @@ def main() -> int:
         codes = [d.get(s, (0, 0))[1] for s in range(n)]
         out.append(int_arr(f"{name}_L", lens, "int32_t"))
         out.append(int_arr(f"{name}_C", codes, "int32_t"))
-    dst = ROOT / "cpp" / "src" / "tables.h"
+    dst = ROOT / "src" / "cpp" / "src" / "tables.h"
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"-> {dst}")

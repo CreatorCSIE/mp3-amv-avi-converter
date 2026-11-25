@@ -393,6 +393,11 @@ Gallery。
 `+` 非合法模式字符——ci.yml 直写 `C++` 会让整个 workflow 解析失败（零 job 秒挂），
 已用通配 `"C*"` 匹配。
 
+仓库布局定案（2026-11-25，替代此前"删 Py 源码 + worktree 引预言机"草案）：C++ 分支
+**保留 `src/amvconv/`（Python 预言机与校验脚本同分支直跑，零间接层）**，C++ 侧整体
+迁入 `src/cpp/`（CMake 源 = `-S src/cpp`，构建目录 `src/cpp/build`）；`_entropy.c`
+单一事实源仍在 `src/amvconv/core/`，CMake 跨目录直编，不复制。
+
 分层定案：
 - **libamvconv（C++ 核心库）**包含：编码内核（amvenc.py 342 行 + `_entropy.c`
   直接复用）、容器写入（amv.py / aviwriter.py）、profiles 参数表（单一事实源，
@@ -437,18 +442,18 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
 - 坑：C++ `%` 向零截断，Python 向上取整 `-h%16` 惯用法必须换 `(h+15)&~15`
   （曾致 H 变小、memcpy 越界 fastfail）。
 - 基准：`scripts/gen_frame_golden.py` 产帧级金标准（4 档 × 含 pad 路径/双素材），
-  `cpp/tools/enc_test.exe` **bit-exact 10/10**。构建需 `-ffp-contract=off`
+  `src/cpp/build/enc_test.exe` **bit-exact 10/10**。构建需 `-ffp-contract=off`
   （GCC 默认融 FMA）。
 
 ### Phase1 里程碑2+3：容器/编排移植，文件级逐位达成（2026-11-25）
 
-- `cpp/src/container.cpp`：amvenc.split_amv/build_file + aviwriter
+- `src/cpp/src/container.cpp`：amvenc.split_amv/build_file + aviwriter
   _packets/_patch_app0/fix_jpeg_layout/remux 移植（纯字节机械；原版模板经
   `gen_container_h.py` 从 aviwriter 导出 `container_data.h`，单一事实源）。
-- `cpp/src/ffproc.cpp`：donor 通道 + rawvideo 管道逐帧（vflip 在管线侧，同
+- `src/cpp/src/ffproc.cpp`：donor 通道 + rawvideo 管道逐帧（vflip 在管线侧，同
   Python）；子进程 system/popen，取消=置位后停读+关管道。AVI 侧 remux 后
   4B 对齐/idx1/RIFF 回填全对齐。
-- `cpp/tools/amvconv_cli.cpp` + `scripts/compare_cpp_golden.py`：读
+- `src/cpp/tools/amvconv_cli.cpp` + `scripts/compare_cpp_golden.py`：读
   golden/manifest.json 全量重跑——**cpp-vs-golden 57/57 逐位一致**
   （AMV/AVI 双通道 × 12 档 × fps/flip/q 变体，一次通过）。
 - CI 新增 `cpp-bitexact` job：同 runner 现生成语料（版本漂移由"现生成"消化）

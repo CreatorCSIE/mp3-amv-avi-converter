@@ -1,5 +1,5 @@
 # libamvconv Phase1 骨架：编码内核（DCT/量化逐位对齐 numpy，熵编码复用 _entropy.c）
-# 构建：cmake -S cpp -B cpp/build && cmake --build cpp/build
+# 构建：cmake -S src/cpp -B src/cpp/build && cmake --build src/cpp/build
 cmake_minimum_required(VERSION 3.24)
 project(amvconv C CXX)
 
@@ -11,7 +11,7 @@ add_library(amvconv_core STATIC
     src/container.cpp
     src/ffproc.cpp
     # 单一事实源：直接编译 Python 侧同款 C 核，不复制不改动
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/amvconv/core/_entropy.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../amvconv/core/_entropy.c)
 target_include_directories(amvconv_core PUBLIC src)
 
 # 逐位浮点契约：禁 FMA 收缩与任何重排（MSVC /fp:strict 默认即精确语义，无需额外开关；

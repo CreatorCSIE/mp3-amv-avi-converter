@@ -1,4 +1,4 @@
-"""从 aviwriter（Python 金标准）导出 cpp/src/container_data.h（原版容器模板字节）。
+"""从 aviwriter（Python 金标准）导出 src/cpp/src/container_data.h（原版容器模板字节）。
 
 _ORIG_HDR / _ORIG_FRAME_HDR 是实机 A/B 定案的固件 gate 模板，改一处必须重跑本脚本，
 保持 Python/C++ 单一事实源。
@@ -36,7 +36,7 @@ def main() -> int:
         byte_arr("ORIG_FRAME_HDR", _ORIG_FRAME_HDR),
         "",
     ]
-    dst = ROOT / "cpp" / "src" / "container_data.h"
+    dst = ROOT / "src" / "cpp" / "src" / "container_data.h"
     dst.write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"-> {dst}")
     return 0
