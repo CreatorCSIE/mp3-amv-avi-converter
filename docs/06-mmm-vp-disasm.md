@@ -415,8 +415,10 @@ Qt 环境排雷（2026-11-25 实测，Phase2 前置结论）：
   私有 `_conda` 后缀（Qt5Core_conda.dll），无开发头、无 Qt6、无 Qt6 CMake config
   ——是 conda 自家 GUI 的私有运行时包，不是给外部 C++ 开发用的。
 - Phase2 的 Qt 用 **aqt 解包官方归档**（aqtinstall 3.3.0 已装）：纯 portable 文件夹、
-  零安装零注册。候选 `win64_mingw`（配现有 gcc 13.3，内核线已验证）或
-  `win64_msvc_2022_64`（本机已有 BuildTools 14.44 / MSVC 14.44.35207）。
+  零安装零注册。**已落地（2026-11-26）**：`aqt install-qt windows desktop 6.8.3
+  win64_mingw -O D:\Qt6`（官方源直连可用；清华/中科大镜像禁目录列表 403，aqt 定位
+  XML 会失败，别加 -b）——qmake 6.8.3 / windeployqt / Qt6Config.cmake 齐；
+  最小 CMake+MinGW 13.3+Widgets 探针编译链接运行全过（offscreen RC=0），无需 MSVC。
 - Phase1 零 Qt 依赖（内核 + CLI 纯 MinGW 即可），不受此排雷影响。
 
 验证与对齐标准（三项均已用户确认）：
@@ -460,6 +462,31 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
   （AMV/AVI 双通道 × 12 档 × fps/flip/q 变体，一次通过）。
 - CI 新增 `cpp-bitexact` job：同 runner 现生成语料（版本漂移由"现生成"消化）
   → 帧级 enc_test → 文件级 57 条比对。
+
+### Phase2：Qt C++ GUI 壳落地（2026-11-26）
+
+- 布局：`src/cpp/gui/`（amvconv_gui 目标，`-DAMVCONV_BUILD_GUI=ON` 才构建，CI 默认关
+  不受影响）；5 个 py 界面 1:1 翻译 + Fluent 组件手搓子集（`gui/fluent/`：QSS 主题、
+  QPainter 图标、导航窗、InfoBar 横幅、折叠分组），无第三方 Fluent C++ 库依赖。
+- core 补齐（定稿分层内）：`proc.*`（原生 spawn：CreateProcessW/fork-exec，UTF-8 路径
+  直通 + terminate 语义，取代 system/popen）、`profiles.h`、`jsonlite.h`+`probe.*`
+  （ffprobe JSON）、`preview.*`（rawvideo 管道预览 + 容器时长兜底）。
+  ffproc 的 AVI 通道补上 progress（stderr frame= 解析）/cancel（terminate）/duration。
+  重构后 57/57 逐位回归仍全绿（ucrt 与 msvcrt 两套工具链均验证过）。
+- **工具链硬坑：ucrt MinGW 混链 msvcrt 版 Qt 必崩**——D:\mingw64（ucrt-posix-seh）
+  编译链接 Qt 程序：轻则 Qt6EntryPoint 引 `__imp___argc` 未定义，剔除后重则运行时
+  跨堆释放崩（Qt6Core 内 msvcrt malloc、我方 TU 内联 QArrayData 释放走 ucrtbase
+  free，gdb 实锤 0xC0000005）。正解=msvcrt 版 MinGW：已落地
+  `D:\mingw64-msvcrt\mingw64`（winlibs 13.3.0posix-…-msvcrt-r1，portable 解压；
+  py7zr 不支持 BCJ2，用 bsdtar 3.8 解）。GUI 构建：
+  `cmake -S src/cpp -B src/cpp/build-gui -G "MinGW Makefiles"
+  -DCMAKE_C(XX)_COMPILER=D:/mingw64-msvcrt/... -DCMAKE_PREFIX_PATH=D:/Qt6/6.8.3/mingw_64
+  -DAMVCONV_BUILD_GUI=ON`。offscreen 冒烟 RC 正常无 stderr。
+- Qt6Multimedia 坑：aqt 默认归档不含多媒体模块（lib/cmake 无 Qt6Multimedia）——
+  补装 `aqt install-qt windows desktop 6.8.3 win64_mingw -m qtmultimedia -O D:\Qt6`；
+  尾部 d3dcompiler_47 覆盖可能因文件占用报 PermissionError，但模块本体已就位可忽略。
+- 播放组件：音频主时钟（QAudioSink 已消费字节折算）+ 15ms 视频追帧 + ffmpeg PCM
+  管道读线程（有界队列 2×2KB 背压）+ 150ms 防抖 seek，语义同 py 版。
 
 ## GUI 环境坑（2026-11-24 实测）
 

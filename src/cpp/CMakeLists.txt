@@ -10,6 +10,9 @@ add_library(amvconv_core STATIC
     src/amvenc.cpp
     src/container.cpp
     src/ffproc.cpp
+    src/proc.cpp
+    src/probe.cpp
+    src/preview.cpp
     # 熵核单一事实源（PySide6 预言机分支同源文件，逐位一致性由 CI 语料比对强制）
     src/_entropy.c)
 target_include_directories(amvconv_core PUBLIC src)
@@ -25,3 +28,10 @@ target_link_libraries(enc_test PRIVATE amvconv_core)
 
 add_executable(amvconv_cli tools/amvconv_cli.cpp)
 target_link_libraries(amvconv_cli PRIVATE amvconv_core)
+
+# Phase2：Qt6 GUI 壳（默认关；CI 无 Qt 不受影响）。
+# 开：cmake -S src/cpp -B build -DAMVCONV_BUILD_GUI=ON -DCMAKE_PREFIX_PATH=D:/Qt6/6.8.3/mingw_64
+option(AMVCONV_BUILD_GUI "Build Qt6 Fluent-style GUI shell" OFF)
+if(AMVCONV_BUILD_GUI)
+    add_subdirectory(gui)
+endif()

@@ -16,6 +16,7 @@ struct ConvertOptions {
     std::string mode = "amv";      // "amv" | "avi"
     int flip = 0;                  // BMPADJUST（transpose=N），仅 AMV 通道
     int q = 4;                     // JPEG 质量（2-31），仅 AVI 通道
+    double duration = 0.0;         // 源时长（秒），仅 AVI 通道用于估算总帧数；<=0 未知
     ProgressFn progress = nullptr;
     void* user = nullptr;
     const std::atomic<bool>* cancel = nullptr;
