@@ -10,8 +10,8 @@ add_library(amvconv_core STATIC
     src/amvenc.cpp
     src/container.cpp
     src/ffproc.cpp
-    # 单一事实源：直接编译 Python 侧同款 C 核，不复制不改动
-    ${CMAKE_CURRENT_SOURCE_DIR}/../amvconv/core/_entropy.c)
+    # 熵核单一事实源（PySide6 预言机分支同源文件，逐位一致性由 CI 语料比对强制）
+    src/_entropy.c)
 target_include_directories(amvconv_core PUBLIC src)
 
 # 逐位浮点契约：禁 FMA 收缩与任何重排（MSVC /fp:strict 默认即精确语义，无需额外开关；

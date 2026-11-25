@@ -26,10 +26,6 @@ media/
 samples/
 out/
 
-# C 核编译产物（amvenc 导入时由 _entropy.c 自动生成）
-src/amvconv/core/_entropy.dll
-src/amvconv/core/_entropy.so
-
 # Nuitka 打包产物
 *.build/
 *.dist/

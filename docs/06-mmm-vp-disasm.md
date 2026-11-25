@@ -393,10 +393,12 @@ Gallery。
 `+` 非合法模式字符——ci.yml 直写 `C++` 会让整个 workflow 解析失败（零 job 秒挂），
 已用通配 `"C*"` 匹配。
 
-仓库布局定案（2026-11-25，替代此前"删 Py 源码 + worktree 引预言机"草案）：C++ 分支
-**保留 `src/amvconv/`（Python 预言机与校验脚本同分支直跑，零间接层）**，C++ 侧整体
-迁入 `src/cpp/`（CMake 源 = `-S src/cpp`，构建目录 `src/cpp/build`）；`_entropy.c`
-单一事实源仍在 `src/amvconv/core/`，CMake 跨目录直编，不复制。
+仓库布局定案（2026-11-25 终版）：C++ 分支**不保留 Py 源码**（src/amvconv、tests、
+pyproject、Nuitka 入口桩全删）——预言机 = PySide6 分支，校验脚本经 `AMVCONV_ORACLE`
+环境变量或兄弟 worktree 定位（`git worktree add --detach ../mp3-amv-avi-converter-oracle PySide6`），
+CI 现拉 worktree。C++ 侧住 `src/cpp/`（CMake 源 = `-S src/cpp`，构建目录
+`src/cpp/build`）；熵核 `_entropy.c` 迁入 `src/cpp/src/`，与预言机同源文件的逐位
+一致性由 CI 语料比对强制（改坏即红）。
 
 分层定案：
 - **libamvconv（C++ 核心库）**包含：编码内核（amvenc.py 342 行 + `_entropy.c`
@@ -438,7 +440,7 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
   c 外 b 内等候选全部逐位不符——C++ 照抄该嵌套即可。
 - 常量策略：DCT_M/TY/TC 以 **float64 位型十六进制**导出（gen_tables_h.py →
   tables.h，`std::bit_cast` 初始化），杜绝 cos/sqrt 跨实现 ULP 差异。
-- 熵编码：直接编译 `src/amvconv/core/_entropy.c` 原文件（单一事实源，零改动）。
+- 熵编码：直接编译 `_entropy.c` 原文件（零改动；现居 `src/cpp/src/`，布局定案段）。
 - 坑：C++ `%` 向零截断，Python 向上取整 `-h%16` 惯用法必须换 `(h+15)&~15`
   （曾致 H 变小、memcpy 越界 fastfail）。
 - 基准：`scripts/gen_frame_golden.py` 产帧级金标准（4 档 × 含 pad 路径/双素材），

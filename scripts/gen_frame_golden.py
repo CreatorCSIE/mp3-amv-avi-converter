@@ -24,7 +24,8 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+from _oracle import oracle_src  # noqa: E402
+sys.path.insert(0, str(oracle_src(ROOT)))
 
 from amvconv.core import amvenc, ffmpeg as ffmod  # noqa: E402
 from amvconv.core.models import ConversionJob  # noqa: E402

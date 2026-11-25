@@ -5,30 +5,12 @@ on:
   pull_request:
 
 jobs:
-  test:
-    runs-on: windows-latest
-    env:
-      QT_QPA_PLATFORM: offscreen
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install ffmpeg（测试依赖外部进程）
-        run: choco install ffmpeg -y --no-progress
-      - name: Install
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[gui,dev]"
-      - name: Test
-        run: python -m pytest -q
-
+  # C++ 分支不保留 Py 源码：预言机 = PySide6 分支（worktree 检出），校验脚本现生成语料
   cpp-bitexact:
-    # Phase1 逐位回归：同 runner 上 Python 预言机现生成语料 → C++ CLI 全量比对
-    # （manifest 不跨 ffmpeg 版本复用，版本漂移由"现生成"消化）
     runs-on: windows-latest
     env:
       PYTHONIOENCODING: utf-8  # runner 控制台 cp1252，脚本中文输出会 UnicodeEncodeError
+      AMVCONV_ORACLE: ../oracle/src
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,8 +22,12 @@ jobs:
         run: |
           echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           gcc --version
-      - name: Install（预言机 core，仅 numpy）
-        run: pip install -e .
+      - name: 预言机 worktree（PySide6 分支 = 金标准）
+        run: |
+          git fetch origin PySide6
+          git worktree add ../oracle FETCH_HEAD
+      - name: Install（预言机 core 依赖）
+        run: pip install numpy
       - name: Build
         run: |
           cmake -S src/cpp -B src/cpp/build -G "MinGW Makefiles"
