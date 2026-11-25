@@ -367,7 +367,7 @@ AMVPlayer\ 与 AMVConverter\ 两份 `AMV_DecDLL.dll` SHA256 一致（F2BDB004…
   许可证逐字实查：FFmpeg LGPL-3.0/GPL-2.0 按构建、PySide6 LGPL-3.0、
   qfluentwidgets GPL-3.0、numpy BSD-3、atj2157-toolkit MIT）。
 
-## C++ 化路线调研（2026-11-24，方向已定、暂不动工）
+## C++ 化路线调研（2026-11-24，2026-11-25 定稿开工）
 
 用户意向：核心与壳全 C++（Fluent 设计语言不变），从 PySide6 分支切新分支；
 Python 版永久保留作金标准预言机。计划：Phase0 金标准语料 → Phase1 libamvconv
@@ -385,6 +385,36 @@ C++ 侧 Fluent 组件库候选（实查）：
 
 首选 Qt-Fluent-Widgets（GPL 兼容 + 翻译成本最低）；动工前需实际 clone 编译验证
 Gallery。
+
+## C++ 移植定稿（2026-11-25，Phase0 开工）
+
+分支策略：`C++` 分支（自 PySide6@7b984b3 切出）为主线兼默认分支；PySide6 分支
+冻结为金标准预言机（只维护不加功能）。坑：Actions 的 `branches` 过滤器是 glob，
+`+` 非合法模式字符——ci.yml 直写 `C++` 会让整个 workflow 解析失败（零 job 秒挂），
+已用通配 `"C*"` 匹配。
+
+分层定案：
+- **libamvconv（C++ 核心库）**包含：编码内核（amvenc.py 342 行 + `_entropy.c`
+  直接复用）、容器写入（amv.py / aviwriter.py）、profiles 参数表（单一事实源，
+  CLI/GUI 共用）、**ffmpeg 子进程编排（定案：归 core，不归壳）**、预览流
+  （preview.py）。公开 API：`convert(in, out, profile, progress_cb, cancel_flag)`
+  ——签名照搬 Python 版现有 `progress(done,total)/cancel(Event)`。
+- 壳层薄：C++ CLI（终结 Nuitka 双 exe ~25min 构建与 onefile 冷启动）+ Qt C++ GUI
+  （Qt-Fluent-Widgets，自现 PySide6-Fluent-Widgets 代码近似 1:1 翻译）。
+- 构建栈：CMake + MSVC + Qt6，C++20。
+
+验证与对齐标准（三项均已用户确认）：
+- Phase0：`scripts/gen_golden.py` 生成金标准语料——lavfi 确定性合成源（lossless
+  x264 + PCM，CI 可再生）+ 可选真实素材（`--src`），矩阵=12 档 × fps 候选 ×
+  AMV/AVI 模式 + flip/q 变体，产物 SHA256 写入 `golden/manifest.json`（媒体本体
+  被 .gitignore 排除，不入库）。
+- Phase1：C++ 测试 CLI 产物与语料 SHA256 全等比对，进 CI。
+- DCT 分层标准：先逐位对齐（固定收缩序、`/fp:strict`、禁 FMA/向量化重排）；
+  对不上的档降级"差异帧占比 < 阈值 + 设备实机抽检"，逐档记录本文。
+- Python 版永久保留为金标准预言机；逐位 diff 是最强回归工具，不轻易放弃。
+
+阶段：Phase0 语料 → Phase1 libamvconv + C++ CLI + 比对 CI → Phase2 Qt 壳 →
+Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）。
 
 ## GUI 环境坑（2026-11-24 实测）
 
