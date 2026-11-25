@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, PySide6, "C++"]
+    branches: [main, PySide6, "C*"]  # C* 匹配 C++：Actions 分支过滤器是 glob，'+' 不是合法模式字符
   pull_request:
 
 jobs:
