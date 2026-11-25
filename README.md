@@ -37,12 +37,12 @@
 ### GUI（PySide6 + Fluent-Widgets，已可用）
 
 - **转换页**：批量队列 + 拖拽添加 + 逐行进度条 + 点击取消 + AMV/AVI 双模式 + 分辨率/帧率联动（自动改帧率提示）；双击已完成行弹出结果预览。
-- **预览页（侧边栏独立页）**：打开/拖入任意媒体文件逐帧预览——画面 = ffmpeg 解码输出 = 设备显示取向，**所见即所得**；播放/暂停、进度条拖动定位、ffplay 含声播放按钮（Qt 多媒体后端受原版 quirk 影响不可用，见 FAQ）。
+- **预览页（侧边栏独立页）**：打开/拖入任意媒体文件——画面 = ffmpeg 解码输出 = 设备显示取向，**所见即所得**；**内嵌含声播放**（音频主时钟 + 视频追帧，音量滑条实时生效）、播放/暂停、进度条拖动定位。
 - **关于页**：运行环境自检（Python/PySide6/ffmpeg/C 核加载状态）、设备兼容实机结论、第三方库许可证逐字实查列表、致谢与免责声明折叠分组。
 
 ### CLI（已可用）
 
-- `amv-conv profiles` 打印逆向得到的 12 档参数表；`convert` 支持 `-s/-f` 与 `--avi [--q]`；`inspect` 输出 AMV 容器结构摘要（与原版输出字节级对比用）。
+- `amv-conv profiles` 打印逆向得到的 12 档参数表；`convert` 支持 `-s/-f` 与 `--avi [--q]`——`-s/-f` 须命中参数表（拒绝表外尺寸/帧率直透编码器），实验尺寸显式加 `--allow-custom`（底线：偶数、≥16x16、≤320x240）；`inspect` 输出 AMV 容器结构摘要（与原版输出字节级对比用）。
 
 ### 老素材兼容
 
@@ -58,8 +58,8 @@
 | Phase 1 | AMV 原生编码器（纯 Python + C 核）+ 容器 idx1 尾区 | ✅ 完成，实机全档播放 + 快进验证通过 |
 | Phase 2 | AVI 模式 writer（原版头部 / AVI1 / 4B 对齐 / idx1） | ✅ 完成，实机验证 + CLI `--avi` 接入 |
 | Phase 3 | 画质对齐（灰底消除 / 方向 / 拉伸） | ✅ 实机与原版持平 |
-| Phase 4 | GUI（批量队列 / 进度 / 取消 / 侧边栏预览页 / 关于页） | ✅ 完成，pytest 21 passed |
-| Phase 5 | 发布流水线（GitHub Actions CI + Nuitka 单文件打包 + GitHub Release） | 🚧 进行中（首发 v0.1.0） |
+| Phase 4 | GUI（批量队列 / 进度 / 取消 / 侧边栏内嵌含声预览页 / 关于页） | ✅ 完成，pytest 22 passed |
+| Phase 5 | 发布流水线（GitHub Actions CI + Nuitka onefile 双资产 CLI/GUI + GitHub Release） | ✅ 完成，v0.1.0 已发布 |
 | Phase 6 | 核心 C++ 化 + Qt 壳迁移路线 | 📋 调研完成（docs/06），暂不动工 |
 
 ---
@@ -69,7 +69,7 @@
 ### 1. 使用者
 
 - **Windows x64**（实机标定平台；核心层跨平台，GUI 未在其他平台验证）。
-- **FFmpeg**：`ffmpeg`/`ffplay` 需在 PATH 或随包目录（源解码、donor 容器、含声预览都靠它）。
+- **FFmpeg**：`ffmpeg` 需在 PATH 或随包目录（源解码、donor 容器、内嵌含声预览都靠它）；`ffplay` 可选（通用 PC 播放建议）。
 - 源码运行时需 **Python ≥ 3.10**；GUI 依赖 PySide6 + PySide6-Fluent-Widgets——**注意 PySide6 6.12 wheel 在 Windows 上因系统 ICU 版本冲突无法加载，钉 6.9.x**。
 - gcc 可选：有则熵编码 C 核现场编译加速，无则自动回退纯 Python（结果比特流一致，只是慢）。
 
@@ -83,6 +83,8 @@
 ## 🚀 如何编译与运行
 
 ### 1. 快速开始
+
+**预编译单文件 exe**（`amvconv-cli` / `amvconv-gui`，Nuitka onefile）见 [Releases](https://github.com/CreatorCSIE/mp3-amv-avi-converter/releases)，需 PATH 有 ffmpeg。源码运行：
 
 ```bash
 pip install -e .[gui,dev]          # 或仅 pip install -e .（只装核心+CLI）
@@ -151,10 +153,6 @@ ATJ 固件的快进/seek **硬依赖 idx1 索引区**（movi 后 `AMV_END_` 哨�
 ### Q6：需要装原版「媒体播放器管理工具」吗？
 
 不需要，也不应该。本重写不依赖原程序、不随附其任何代码与资源；唯一的外部依赖是 FFmpeg（源解码 / donor 容器 / 含声预览）。
-
-### Q7：GUI 预览为什么没有声音？
-
-预览页是 ffmpeg 管道逐帧解码（无音频通道），画面即设备显示取向；**要带声完整播放请点「ffplay 播放（含声音）」按钮**——Qt 多媒体后端受原版 quirk 影响不可用（见 docs/06）。
 
 ---
 
