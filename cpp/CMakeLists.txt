@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(amvconv_core STATIC
     src/amvenc.cpp
+    src/container.cpp
+    src/ffproc.cpp
     # 单一事实源：直接编译 Python 侧同款 C 核，不复制不改动
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/amvconv/core/_entropy.c)
 target_include_directories(amvconv_core PUBLIC src)
@@ -20,3 +22,6 @@ endif()
 
 add_executable(enc_test tools/enc_test.cpp)
 target_link_libraries(enc_test PRIVATE amvconv_core)
+
+add_executable(amvconv_cli tools/amvconv_cli.cpp)
+target_link_libraries(amvconv_cli PRIVATE amvconv_core)

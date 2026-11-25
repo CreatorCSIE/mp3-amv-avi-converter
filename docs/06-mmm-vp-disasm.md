@@ -403,6 +403,15 @@ Gallery。
   （Qt-Fluent-Widgets，自现 PySide6-Fluent-Widgets 代码近似 1:1 翻译）。
 - 构建栈：CMake + MSVC + Qt6，C++20。
 
+Qt 环境排雷（2026-11-25 实测，Phase2 前置结论）：
+- **conda base 的 Qt 不可用**：qmake 实为 5.15.2（非 6.8.3），全部库带 Anaconda
+  私有 `_conda` 后缀（Qt5Core_conda.dll），无开发头、无 Qt6、无 Qt6 CMake config
+  ——是 conda 自家 GUI 的私有运行时包，不是给外部 C++ 开发用的。
+- Phase2 的 Qt 用 **aqt 解包官方归档**（aqtinstall 3.3.0 已装）：纯 portable 文件夹、
+  零安装零注册。候选 `win64_mingw`（配现有 gcc 13.3，内核线已验证）或
+  `win64_msvc_2022_64`（本机已有 BuildTools 14.44 / MSVC 14.44.35207）。
+- Phase1 零 Qt 依赖（内核 + CLI 纯 MinGW 即可），不受此排雷影响。
+
 验证与对齐标准（三项均已用户确认）：
 - Phase0：`scripts/gen_golden.py` 生成金标准语料——lavfi 确定性合成源（lossless
   x264 + PCM，CI 可再生）+ 可选真实素材（`--src`），矩阵=12 档 × fps 候选 ×
@@ -430,6 +439,20 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
 - 基准：`scripts/gen_frame_golden.py` 产帧级金标准（4 档 × 含 pad 路径/双素材），
   `cpp/tools/enc_test.exe` **bit-exact 10/10**。构建需 `-ffp-contract=off`
   （GCC 默认融 FMA）。
+
+### Phase1 里程碑2+3：容器/编排移植，文件级逐位达成（2026-11-25）
+
+- `cpp/src/container.cpp`：amvenc.split_amv/build_file + aviwriter
+  _packets/_patch_app0/fix_jpeg_layout/remux 移植（纯字节机械；原版模板经
+  `gen_container_h.py` 从 aviwriter 导出 `container_data.h`，单一事实源）。
+- `cpp/src/ffproc.cpp`：donor 通道 + rawvideo 管道逐帧（vflip 在管线侧，同
+  Python）；子进程 system/popen，取消=置位后停读+关管道。AVI 侧 remux 后
+  4B 对齐/idx1/RIFF 回填全对齐。
+- `cpp/tools/amvconv_cli.cpp` + `scripts/compare_cpp_golden.py`：读
+  golden/manifest.json 全量重跑——**cpp-vs-golden 57/57 逐位一致**
+  （AMV/AVI 双通道 × 12 档 × fps/flip/q 变体，一次通过）。
+- CI 新增 `cpp-bitexact` job：同 runner 现生成语料（版本漂移由"现生成"消化）
+  → 帧级 enc_test → 文件级 57 条比对。
 
 ## GUI 环境坑（2026-11-24 实测）
 

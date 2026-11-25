@@ -41,6 +41,7 @@ amvconv-cli-*.exe
 cpp/build/
 golden/src/
 golden/out/
+golden/out_cpp/
 golden/frames/
 
 # IDE / OS
