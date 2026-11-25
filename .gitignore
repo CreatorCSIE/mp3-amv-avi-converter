@@ -48,3 +48,6 @@ golden/frames/
 .vscode/
 Thumbs.db
 Desktop.ini
+
+# 工具旁路日志（aqt 等写到 cwd）
+aqtinstall.log
