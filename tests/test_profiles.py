@@ -47,3 +47,29 @@ def test_build_command_strict_and_block():
     vf = v[v.index("-vf") + 1]
     assert vf == "scale=128:128,fps=30,format=yuvj420p"
     assert v[-3:] == ["-f", "rawvideo", "-"]
+
+
+def test_cli_size_fps_validation():
+    from amvconv.cli import _check_fps, _check_size, _parse_size
+
+    assert _parse_size("160x120") == (160, 120)
+    assert _parse_size("160×120") == (160, 120)
+    assert _parse_size("abc") is None
+    assert _parse_size("160") is None
+
+    # 白名单：12 档放行；表外默认拒绝（用户报障的 1x1 直透崩溃场景）
+    assert _check_size(160, 120, False) is None
+    assert _check_size(1, 1, False) is not None
+    assert _check_size(64, 48, False) is not None
+
+    # --allow-custom 底线：偶数、≥16x16、≤320x240
+    assert _check_size(64, 48, True) is None
+    assert _check_size(1, 1, True) is not None
+    assert _check_size(63, 48, True) is not None
+    assert _check_size(322, 240, True) is not None
+
+    # fps：表内档须命中候选；自定义尺寸只要求正整数
+    assert _check_fps(160, 120, 25) is None
+    assert _check_fps(160, 120, 20) is not None
+    assert _check_fps(64, 48, 20) is None
+    assert _check_fps(64, 48, 0) is not None
