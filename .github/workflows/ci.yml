@@ -27,6 +27,8 @@ jobs:
     # Phase1 逐位回归：同 runner 上 Python 预言机现生成语料 → C++ CLI 全量比对
     # （manifest 不跨 ffmpeg 版本复用，版本漂移由"现生成"消化）
     runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8  # runner 控制台 cp1252，脚本中文输出会 UnicodeEncodeError
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
