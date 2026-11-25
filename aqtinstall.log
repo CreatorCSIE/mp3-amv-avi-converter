@@ -1,0 +1,21 @@
+2026-11-25 22:56:34,434 - aqt.main - INFO - installer 14432 aqtinstall(aqt) v3.3.0 on Python 3.13.5 [CPython MSC v.1929 64 bit (AMD64)]
+2026-11-25 22:56:48,134 - aqt.helper - DEBUG - helper 31532 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_683/qt6_683/Updates.xml.sha256
+2026-11-25 22:57:06,393 - aqt.main - INFO - installer 30284 aqtinstall(aqt) v3.3.0 on Python 3.13.5 [CPython MSC v.1929 64 bit (AMD64)]
+2026-11-25 22:57:06,394 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_683/qt6_683/Updates.xml.sha256
+2026-11-25 22:57:10,563 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:12,558 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:15,476 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:17,459 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:20,710 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:23,235 - aqt.helper - DEBUG - helper 30284 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtpdf/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:27,347 - aqt.archives - INFO - archives 30284 Found extension qtpdf
+2026-11-25 22:57:27,379 - aqt.main - ERROR - installer 30284 The packages ['qtbase', 'qtsvg', 'qttools'] were not found while parsing XML of package information!
+==============================Suggested follow-up:==============================
+* Please use 'aqt list-qt windows desktop --modules 6.8.3 <arch>' to show modules available.
+2026-11-25 22:57:47,822 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_683/qt6_683/Updates.xml.sha256
+2026-11-25 22:57:52,175 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtpdf/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:56,627 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:57:58,802 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:58:01,076 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:58:03,013 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256
+2026-11-25 22:58:05,005 - aqt.helper - DEBUG - helper 2864 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/683/mingw/Updates.xml.sha256

@@ -37,6 +37,12 @@ src/amvconv/core/_entropy.so
 amvconv-gui-*.exe
 amvconv-cli-*.exe
 
+# C++ 构建目录与金标准媒体（manifest/tables 入库，产物不入库）
+cpp/build/
+golden/src/
+golden/out/
+golden/frames/
+
 # IDE / OS
 .idea/
 .vscode/

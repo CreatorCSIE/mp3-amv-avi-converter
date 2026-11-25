@@ -416,6 +416,21 @@ Gallery。
 阶段：Phase0 语料 → Phase1 libamvconv + C++ CLI + 比对 CI → Phase2 Qt 壳 →
 Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）。
 
+### Phase1 里程碑1：编码内核逐位达成（2026-11-25）
+
+- **einsum 收缩序定案**（探针实测，20480/20480 逐位）：
+  `np.einsum("ab,nbc,dc->nad")` 非优化路径 = 对每个 (n,a,d) 输出，**b 外 c 内**
+  逐项 `acc += (M[a,b]*X[b,c])*M[d,c]`（左结合，无 FMA）。两阶段 matmul/BLAS、
+  c 外 b 内等候选全部逐位不符——C++ 照抄该嵌套即可。
+- 常量策略：DCT_M/TY/TC 以 **float64 位型十六进制**导出（gen_tables_h.py →
+  tables.h，`std::bit_cast` 初始化），杜绝 cos/sqrt 跨实现 ULP 差异。
+- 熵编码：直接编译 `src/amvconv/core/_entropy.c` 原文件（单一事实源，零改动）。
+- 坑：C++ `%` 向零截断，Python 向上取整 `-h%16` 惯用法必须换 `(h+15)&~15`
+  （曾致 H 变小、memcpy 越界 fastfail）。
+- 基准：`scripts/gen_frame_golden.py` 产帧级金标准（4 档 × 含 pad 路径/双素材），
+  `cpp/tools/enc_test.exe` **bit-exact 10/10**。构建需 `-ffp-contract=off`
+  （GCC 默认融 FMA）。
+
 ## GUI 环境坑（2026-11-24 实测）
 
 - **PySide6 6.12.0 wheel 在本机（Win11 26100）QtCore DLL load failed 127**：Qt6Core
