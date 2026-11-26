@@ -500,6 +500,20 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
 - 播放组件：音频主时钟（QAudioSink 已消费字节折算）+ 15ms 视频追帧 + ffmpeg PCM
   管道读线程（有界队列 2×2KB 背压）+ 150ms 防抖 seek，语义同 py 版。
 
+## Phase 3 打包发版定案（2026-11-27，v0.2.0）
+
+- 发布构建：`src/cpp/build-rel`（Release 必须显式——默认空 build type 无优化，
+  编码内核性能敏感），`-DAMVCONV_BUILD_GUI=ON` 一并出 GUI+CLI。
+- 打包 = windeployqt：`windeployqt --release --no-translations --compiler-runtime`
+  于 `dist/AMVConverter/`（自动带 Qt DLL/plugins/multimedia 后端/MinGW 运行时）。
+- ffmpeg 随包：core 裸名调 ffmpeg，CreateProcess 优先搜 exe 同目录 → 包目录放
+  gyan essentials 静态版（GPL 构建，与项目 GPL-3.0 兼容）即完全自足，不依赖 PATH。
+- 打包版验收：纯净 PATH（仅 System32）下 CLI 转 bars 160x128@25 与金标准 SHA256
+  逐位一致；GUI 同环境起窗正常。
+- 发版：zip（97.7MB）→ `gh release create v0.2.0`（gh CLI 已认证 CreatorCSIE）。
+- 坑：新构建目录名必须先补 .gitignore 再 `git add -A`（build-rel 曾整目录误入库，
+  经用户确认回退重做 + force-with-lease + 重打 tag 清掉）。
+
 ## GUI 环境坑（2026-11-24 实测）
 
 - **PySide6 6.12.0 wheel 在本机（Win11 26100）QtCore DLL load failed 127**：Qt6Core
