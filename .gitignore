@@ -50,3 +50,5 @@ Desktop.ini
 
 # 工具旁路日志（aqt 等写到 cwd）
 aqtinstall.log
+
+src/cpp/build-rel/

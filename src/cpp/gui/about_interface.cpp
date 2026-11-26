@@ -12,7 +12,7 @@
 namespace {
 
 const char* REPO_URL = "https://github.com/CreatorCSIE/mp3-amv-avi-converter";
-const char* APP_VERSION = "0.0.1";
+const char* APP_VERSION = "0.2.0";
 
 // 许可证均经实查（各上游 LICENSE 原文），不虚构
 struct Ref {
