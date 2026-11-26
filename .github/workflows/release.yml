@@ -13,7 +13,7 @@ jobs:
       contents: write
     env:
       QT_VER: 6.8.3
-      WINLIBS: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.3.0posix-18.1.1-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64msvcrt-18.1.1-r1.zip
+      WINLIBS: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.3.0posix-11.0.1-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64msvcrt-11.0.1-r1.zip
       FFMPEG_ZIP: https://github.com/GyanD/codexffmpeg/releases/download/2023-02-27-git-891ed24f77/ffmpeg-2023-02-27-git-891ed24f77-essentials_build.zip
     steps:
       - uses: actions/checkout@v4
