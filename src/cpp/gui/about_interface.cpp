@@ -22,7 +22,7 @@ const std::vector<Ref> REFERENCES = {
     {"FFmpeg", "解封装/缩放/donor 容器（外部进程调用）", "LGPL-3.0 / GPL-2.0（按构建）",
      "https://github.com/FFmpeg/FFmpeg"},
     {"Qt 6 (Widgets/Multimedia)", "GUI 框架", "LGPL-3.0", "https://www.qt.io"},
-    {"Qt-Fluent-Widgets", "Fluent 组件库（已 vendored 于 src/cpp/third_party）", "GPL-3.0",
+    {"Qt-Fluent-Widgets", "Fluent 组件库（git submodule 引入，见 .gitmodules）", "GPL-3.0",
      "https://github.com/Fairy-Oracle-Sanctuary/Qt-Fluent-Widgets"},
     {"NumPy", "比特流内核的 PySide6 预言机参照（校验用，不随附）", "BSD-3-Clause",
      "https://github.com/numpy/numpy"},

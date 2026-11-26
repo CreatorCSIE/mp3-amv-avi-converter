@@ -466,12 +466,13 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
 ### Phase2：Qt C++ GUI 壳落地（2026-11-26）
 
 - 布局：`src/cpp/gui/`（amvconv_gui 目标，`-DAMVCONV_BUILD_GUI=ON` 才构建，CI 默认关
-  不受影响）；5 个 py 界面 1:1 翻译；组件层 = **vendored Qt-Fluent-Widgets**
-  （`src/cpp/third_party/qtfluentwidgets/`，GPL-3.0 与本项目兼容，含上游 LICENSE 副本）。
+  不受影响）；5 个 py 界面 1:1 翻译；组件层 = **Qt-Fluent-Widgets submodule**
+  （`src/cpp/third_party/qt-fluent-widgets`，钉 commit 49da255，GPL-3.0 与本项目兼容）。
   实测定案：手搓 QSS 子集观感明显劣化（用户验收否决），定稿首选 qfw 直接落地。
-  vendoring 两处最小补丁：`QFW_BUILD_CHART=OFF`（去 WebEngine/ECharts 依赖，qtwebengine
-  模块本机未装）+ 剔除 `resources/chat_math.qrc`（13MB matplotlib 数学渲染数据，仅
-  chat 公式组件运行时使用，避免仓库膨胀；chat_math.cpp 的 Q_INIT_RESOURCE 同步注释）。
+  仓库不存第三方源码本体（899 文件否决），补丁存 `third_party/patches/01-*.patch`，
+  configure 时 git apply 幂等打上：剔除 `resources/chat_math.qrc`（13MB matplotlib
+  数学渲染数据，仅 chat 公式组件运行时使用）+ chat_math.cpp 的 Q_INIT_RESOURCE 置空。
+  构建另需 `-DQFW_BUILD_CHART=OFF`（去 WebEngine/ECharts 依赖，qtwebengine 模块本机未装）。
 - qfw 静态库集成三坑（均实测踩中并修复）：① 上游根 CMakeLists 的
   `qt_standard_project_setup()` 不随子目录 vendoring 生效，AUTOMOC/AUTORCC 须在
   gui/CMakeLists 显式开启，否则全库 moc 符号缺失；② 静态库 qrc 不自动注册——
