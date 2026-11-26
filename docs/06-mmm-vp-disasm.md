@@ -466,8 +466,19 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
 ### Phase2：Qt C++ GUI 壳落地（2026-11-26）
 
 - 布局：`src/cpp/gui/`（amvconv_gui 目标，`-DAMVCONV_BUILD_GUI=ON` 才构建，CI 默认关
-  不受影响）；5 个 py 界面 1:1 翻译 + Fluent 组件手搓子集（`gui/fluent/`：QSS 主题、
-  QPainter 图标、导航窗、InfoBar 横幅、折叠分组），无第三方 Fluent C++ 库依赖。
+  不受影响）；5 个 py 界面 1:1 翻译；组件层 = **vendored Qt-Fluent-Widgets**
+  （`src/cpp/third_party/qtfluentwidgets/`，GPL-3.0 与本项目兼容，含上游 LICENSE 副本）。
+  实测定案：手搓 QSS 子集观感明显劣化（用户验收否决），定稿首选 qfw 直接落地。
+  vendoring 两处最小补丁：`QFW_BUILD_CHART=OFF`（去 WebEngine/ECharts 依赖，qtwebengine
+  模块本机未装）+ 剔除 `resources/chat_math.qrc`（13MB matplotlib 数学渲染数据，仅
+  chat 公式组件运行时使用，避免仓库膨胀；chat_math.cpp 的 Q_INIT_RESOURCE 同步注释）。
+- qfw 静态库集成三坑（均实测踩中并修复）：① 上游根 CMakeLists 的
+  `qt_standard_project_setup()` 不随子目录 vendoring 生效，AUTOMOC/AUTORCC 须在
+  gui/CMakeLists 显式开启，否则全库 moc 符号缺失；② 静态库 qrc 不自动注册——
+  main.cpp 必须 `Q_INIT_RESOURCE(resource)`，否则标题栏按钮/导航图标全部消失；
+  ③ 库内 DwmFlush 上游未链 dwmapi（MSVC 靠默认库，MinGW 需显式）。另：中断的
+  make 会留下 0 字节 .obj 且时间戳骗过增量构建（mocs_compilation/drop_down_color_picker
+  两例），链接报"莫名缺符号"先查 `Get-ChildItem -Recurse -Filter *.obj | ? Length -eq 0`。
 - core 补齐（定稿分层内）：`proc.*`（原生 spawn：CreateProcessW/fork-exec，UTF-8 路径
   直通 + terminate 语义，取代 system/popen）、`profiles.h`、`jsonlite.h`+`probe.*`
   （ffprobe JSON）、`preview.*`（rawvideo 管道预览 + 容器时长兜底）。

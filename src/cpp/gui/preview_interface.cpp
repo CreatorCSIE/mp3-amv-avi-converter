@@ -5,15 +5,14 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
-#include <QLineEdit>
 #include <QMimeData>
-#include <QPushButton>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <qtfluentwidgets.h>
+
+#include <algorithm>
 
 #include "common.h"
-#include "fluent/icons.h"
-#include "fluent/widgets.h"
 #include "media_player.h"
 
 namespace {
@@ -33,9 +32,10 @@ PreviewInterface::PreviewInterface(QWidget* parent) : QWidget(parent) {
     lay->setSpacing(12);
 
     auto* row = new QHBoxLayout();
-    auto* openBtn = new PushButton(FluentIcon::FOLDER, "打开文件", this);
-    connect(openBtn, &QPushButton::clicked, this, &PreviewInterface::openFile);
-    pathEdit_ = new QLineEdit(this);
+    auto* openBtn = new qfw::FluentPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Folder),
+                                              "打开文件", this);
+    connect(openBtn, &qfw::FluentPushButton::clicked, this, &PreviewInterface::openFile);
+    pathEdit_ = new qfw::LineEdit(this);
     pathEdit_->setReadOnly(true);
     pathEdit_->setPlaceholderText("选择或拖入视频文件（AMV / AVI / MP4 …）");
     row->addWidget(openBtn);
@@ -43,9 +43,9 @@ PreviewInterface::PreviewInterface(QWidget* parent) : QWidget(parent) {
     lay->addLayout(row);
 
     player_ = new MediaPlayerWidget(this);
-    connect(player_, &MediaPlayerWidget::mediaClosed, pathEdit_, &QLineEdit::clear);
+    connect(player_, &MediaPlayerWidget::mediaClosed, pathEdit_, &qfw::LineEdit::clear);
     lay->addWidget(player_, 1);
-    lay->addWidget(new CaptionLabel(
+    lay->addWidget(new qfw::CaptionLabel(
         "内嵌含声预览（音量滑条实时生效）；画面 = 设备显示取向，所见即所得。", this));
     setAcceptDrops(true);
 }

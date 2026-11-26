@@ -1,24 +1,18 @@
 #include "convert_interface.h"
 
-#include <QComboBox>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
-#include <QLabel>
-#include <QLineEdit>
 #include <QMimeData>
-#include <QProgressBar>
-#include <QPushButton>
-#include <QTableWidget>
 #include <QUrl>
+#include <QVBoxLayout>
+#include <qtfluentwidgets.h>
 
 #include "common.h"
 #include "ffproc.h"
-#include "fluent/icons.h"
-#include "fluent/widgets.h"
 #include "preview_dialog.h"
 #include "profiles.h"
 #include "probe.h"
@@ -69,10 +63,8 @@ void QueueWorker::run() {
             ProbeInfo info;
             std::string perr;
             if (probe_media(job.src, info, perr)) opt.duration = info.duration;
-            rc = convert(job.src, job.dst, p, opt, err);
-        } else {
-            rc = convert(job.src, job.dst, p, opt, err);
         }
+        rc = convert(job.src, job.dst, p, opt, err);
         bool ok = (rc == 0);
         QString msg = ok ? QString::fromUtf8(job.dst.c_str())
                          : QString::fromUtf8(err.c_str());
@@ -95,41 +87,44 @@ void ConvertInterface::build() {
 
     // 行 1：模式 / 分辨率 / 帧率
     auto* row = new QHBoxLayout();
-    modeCombo_ = new QComboBox(this);
+    modeCombo_ = new qfw::ComboBox(this);
     modeCombo_->addItems({"AMV（设备用）", "AVI（播放器友好）"});
-    sizeCombo_ = new QComboBox(this);
+    sizeCombo_ = new qfw::ComboBox(this);
     for (const auto& e : profiles::ui_profiles())
         sizeCombo_->addItem(QString("%1x%2").arg(e.w).arg(e.h));
     sizeCombo_->setCurrentText("160x120");
-    fpsCombo_ = new QComboBox(this);
+    fpsCombo_ = new qfw::ComboBox(this);
     refreshFps();
-    connect(sizeCombo_, &QComboBox::currentTextChanged, this, [this](const QString&) { refreshFps(); });
-    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ConvertInterface::onMode);
-    row->addWidget(new CaptionLabel("模式", this));
+    connect(sizeCombo_, &qfw::ComboBox::currentTextChanged, this, &ConvertInterface::refreshFps);
+    connect(modeCombo_, &qfw::ComboBox::currentIndexChanged, this, &ConvertInterface::onMode);
+    row->addWidget(new qfw::CaptionLabel("模式", this));
     row->addWidget(modeCombo_);
-    row->addWidget(new CaptionLabel("分辨率", this));
+    row->addWidget(new qfw::CaptionLabel("分辨率", this));
     row->addWidget(sizeCombo_);
-    row->addWidget(new CaptionLabel("帧率", this));
+    row->addWidget(new qfw::CaptionLabel("帧率", this));
     row->addWidget(fpsCombo_);
     row->addStretch(1);
     lay->addLayout(row);
 
     // 行 2：输出目录 + 添加文件
     auto* row2 = new QHBoxLayout();
-    outEdit_ = new QLineEdit(this);
+    outEdit_ = new qfw::LineEdit(this);
     outEdit_->setPlaceholderText("输出目录（留空 = 源文件同目录）");
-    auto* pick = new PushButton(FluentIcon::FOLDER_ADD, "…", this);
-    connect(pick, &QPushButton::clicked, this, &ConvertInterface::pickOut);
-    auto* addBtn = new PrimaryPushButton(FluentIcon::ADD, "添加文件", this);
-    connect(addBtn, &QPushButton::clicked, this, &ConvertInterface::addFiles);
+    auto* pick = new qfw::FluentPushButton(qfw::FluentIcon(qfw::FluentIconEnum::FolderAdd),
+                                           "…", this);
+    connect(pick, &qfw::FluentPushButton::clicked, this, &ConvertInterface::pickOut);
+    auto* addBtn = new qfw::PrimaryPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Add),
+                                              "添加文件", this);
+    connect(addBtn, &qfw::PrimaryPushButton::clicked, this, &ConvertInterface::addFiles);
     row2->addWidget(outEdit_, 1);
     row2->addWidget(pick);
     row2->addWidget(addBtn);
     lay->addLayout(row2);
 
     // 队列表
-    table_ = new QTableWidget(this);
-    table_->setObjectName("fluentTable");
+    table_ = new qfw::TableWidget(this);
+    table_->setBorderVisible(true);
+    table_->setBorderRadius(8);
     table_->setColumnCount(4);
     table_->setHorizontalHeaderLabels({"源文件", "输出", "状态", "进度"});
     table_->verticalHeader()->setVisible(false);
@@ -139,17 +134,19 @@ void ConvertInterface::build() {
     table_->setColumnWidth(3, 200);
     table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table_->setSelectionBehavior(QAbstractItemView::SelectRows);
-    connect(table_, &QTableWidget::cellClicked, this, &ConvertInterface::onRowClicked);
-    connect(table_, &QTableWidget::cellDoubleClicked, this, &ConvertInterface::onPreview);
+    connect(table_, &qfw::TableWidget::cellClicked, this, &ConvertInterface::onRowClicked);
+    connect(table_, &qfw::TableWidget::cellDoubleClicked, this, &ConvertInterface::onPreview);
     lay->addWidget(table_, 1);
 
     // 行 3：开始 / 清除 / 提示
     auto* row3 = new QHBoxLayout();
-    startBtn_ = new PrimaryPushButton(FluentIcon::PLAY, "开始全部", this);
-    connect(startBtn_, &QPushButton::clicked, this, &ConvertInterface::startAll);
-    clearBtn_ = new PushButton(FluentIcon::DELETE_, "清除已完成", this);
-    connect(clearBtn_, &QPushButton::clicked, this, &ConvertInterface::clearDone);
-    hint_ = new CaptionLabel("", this);
+    startBtn_ = new qfw::PrimaryPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Play),
+                                           "开始全部", this);
+    connect(startBtn_, &qfw::PrimaryPushButton::clicked, this, &ConvertInterface::startAll);
+    clearBtn_ = new qfw::FluentPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Delete),
+                                          "清除已完成", this);
+    connect(clearBtn_, &qfw::FluentPushButton::clicked, this, &ConvertInterface::clearDone);
+    hint_ = new qfw::CaptionLabel("", this);
     row3->addWidget(startBtn_);
     row3->addWidget(clearBtn_);
     row3->addWidget(hint_, 1);
@@ -221,7 +218,7 @@ void ConvertInterface::append(const QStringList& files) {
         auto* it = new QTableWidgetItem(QFileInfo(dst).fileName());
         it->setData(Qt::UserRole, dst);
         table_->setItem(r, 1, it);
-        auto* pb = new QProgressBar(this);
+        auto* pb = new qfw::ProgressBar(this);
         pb->setRange(0, 100);
         pb->setValue(0);
         table_->setCellWidget(r, 3, pb);
@@ -296,7 +293,9 @@ void ConvertInterface::onDone(int r, bool ok, const QString& msg) {
     if (it) it->setText(ok ? "完成" : "失败");
     auto* pb = qobject_cast<QProgressBar*>(table_->cellWidget(r, 3));
     if (ok && pb) pb->setValue(100);
-    if (!ok) InfoBar::error("转换失败", msg.right(300), this);
+    if (!ok)
+        qfw::InfoBar::error("转换失败", msg.right(300), Qt::Horizontal, true, 5000,
+                            qfw::InfoBarPosition::Top, this);
     cancels_.erase(r);
 }
 

@@ -1,7 +1,9 @@
 #pragma once
 #include <QWidget>
 
-class QLineEdit;
+namespace qfw {
+class LineEdit;
+}  // namespace qfw
 class QDragEnterEvent;
 class QDropEvent;
 class MediaPlayerWidget;
@@ -20,6 +22,6 @@ private:
     void openFile();
     void load(const QString& path);
 
-    QLineEdit* pathEdit_ = nullptr;
+    qfw::LineEdit* pathEdit_ = nullptr;
     MediaPlayerWidget* player_ = nullptr;
 };

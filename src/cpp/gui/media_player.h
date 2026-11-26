@@ -14,8 +14,11 @@
 #include "preview.h"
 
 class QLabel;
-class QPushButton;
-class QSlider;
+namespace qfw {
+class FluentPushButton;
+class Slider;
+class CaptionLabel;
+}  // namespace qfw
 class QAudioSink;
 class QIODevice;
 class QHideEvent;
@@ -87,12 +90,12 @@ private:
     bool dragging_ = false, wasPlaying_ = false, clickResume_ = false, syncing_ = false;
 
     QLabel* img_ = nullptr;
-    QPushButton* playBtn_ = nullptr;
-    QPushButton* stopBtn_ = nullptr;
-    QPushButton* closeBtn_ = nullptr;
-    class QSlider* slider_ = nullptr;
-    QSlider* volSlider_ = nullptr;
-    QLabel* timeLbl_ = nullptr;
+    qfw::FluentPushButton* playBtn_ = nullptr;
+    qfw::FluentPushButton* stopBtn_ = nullptr;
+    qfw::FluentPushButton* closeBtn_ = nullptr;
+    qfw::Slider* slider_ = nullptr;
+    qfw::Slider* volSlider_ = nullptr;
+    qfw::CaptionLabel* timeLbl_ = nullptr;
 
     int maxW_ = 640, maxH_ = 480;
 };

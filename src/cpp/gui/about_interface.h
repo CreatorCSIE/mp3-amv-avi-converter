@@ -1,13 +1,12 @@
 #pragma once
-#include <QFrame>
 #include <QString>
 #include <QWidget>
+#include <qtfluentwidgets.h>
 
 class QVBoxLayout;
-class TransparentPushButton;
 
-// 折叠分组（ClassIsland“更多设置”语义；qfluentwidgets 无 ExpanderGroup，原版即手搓）
-class FoldGroup : public QFrame {
+// 折叠分组（ClassIsland“更多设置”语义；qfluentwidgets 无 ExpanderGroup，py 版同款手搓）
+class FoldGroup : public qfw::CardWidget {
     Q_OBJECT
 public:
     explicit FoldGroup(const QString& title, QWidget* parent = nullptr);
@@ -15,7 +14,7 @@ public:
 
 private:
     void toggle();
-    TransparentPushButton* head_;
+    qfw::TransparentPushButton* head_;
     QWidget* body_;
     QVBoxLayout* bodyLay_;
     bool open_ = false;

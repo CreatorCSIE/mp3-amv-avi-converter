@@ -8,16 +8,14 @@
 #include <QIODevice>
 #include <QLabel>
 #include <QPixmap>
-#include <QPushButton>
 #include <QSlider>
 #include <QVBoxLayout>
+#include <qtfluentwidgets.h>
 
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
 
-#include "fluent/icons.h"
-#include "fluent/widgets.h"
 #include "proc.h"
 
 namespace {
@@ -48,32 +46,32 @@ void MediaPlayerWidget::build() {
     lay->addWidget(img_, 1);
 
     auto* row = new QHBoxLayout();
-    playBtn_ = new PushButton(FluentIcon::PLAY, "播放", this);
-    connect(playBtn_, &QPushButton::clicked, this, &MediaPlayerWidget::toggle);
-    stopBtn_ = new PushButton(FluentIcon::PAUSE, "停止", this);
-    connect(stopBtn_, &QPushButton::clicked, this, &MediaPlayerWidget::stop);
-    slider_ = new QSlider(Qt::Horizontal, this);
+    playBtn_ = new qfw::FluentPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Play), "播放", this);
+    connect(playBtn_, &qfw::FluentPushButton::clicked, this, &MediaPlayerWidget::toggle);
+    stopBtn_ = new qfw::FluentPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Pause), "停止", this);
+    connect(stopBtn_, &qfw::FluentPushButton::clicked, this, &MediaPlayerWidget::stop);
+    slider_ = new qfw::Slider(Qt::Horizontal, this);
     slider_->setRange(0, 1);
-    connect(slider_, &QSlider::sliderPressed, this, &MediaPlayerWidget::beginDrag);
-    connect(slider_, &QSlider::sliderMoved, this, &MediaPlayerWidget::previewSeek);
-    connect(slider_, &QSlider::sliderReleased, this, &MediaPlayerWidget::endDrag);
-    connect(slider_, &QSlider::valueChanged, this, &MediaPlayerWidget::onSliderValue);
-    timeLbl_ = new CaptionLabel("0:00 / 0:00", this);
+    connect(slider_, &qfw::Slider::sliderPressed, this, &MediaPlayerWidget::beginDrag);
+    connect(slider_, &qfw::Slider::sliderMoved, this, &MediaPlayerWidget::previewSeek);
+    connect(slider_, &qfw::Slider::sliderReleased, this, &MediaPlayerWidget::endDrag);
+    connect(slider_, &qfw::Slider::valueChanged, this, &MediaPlayerWidget::onSliderValue);
+    timeLbl_ = new qfw::CaptionLabel("0:00 / 0:00", this);
     row->addWidget(playBtn_);
     row->addWidget(stopBtn_);
     row->addWidget(slider_, 1);
     row->addWidget(timeLbl_);
-    row->addWidget(new CaptionLabel("音量", this));
-    volSlider_ = new QSlider(Qt::Horizontal, this);
+    row->addWidget(new qfw::CaptionLabel("音量", this));
+    volSlider_ = new qfw::Slider(Qt::Horizontal, this);
     volSlider_->setRange(0, 100);
     volSlider_->setValue(100);
     volSlider_->setFixedWidth(110);
-    connect(volSlider_, &QSlider::valueChanged, this, [this](int v) {
+    connect(volSlider_, &qfw::Slider::valueChanged, this, [this](int v) {
         if (sink_) sink_->setVolume(v / 100.0);
     });
     row->addWidget(volSlider_);
-    closeBtn_ = new PushButton(FluentIcon::CLOSE, "关闭", this);
-    connect(closeBtn_, &QPushButton::clicked, this, &MediaPlayerWidget::closeClicked);
+    closeBtn_ = new qfw::FluentPushButton(qfw::FluentIcon(qfw::FluentIconEnum::Close), "关闭", this);
+    connect(closeBtn_, &qfw::FluentPushButton::clicked, this, &MediaPlayerWidget::closeClicked);
     row->addWidget(closeBtn_);
     lay->addLayout(row);
 

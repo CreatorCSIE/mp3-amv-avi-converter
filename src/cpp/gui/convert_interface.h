@@ -9,13 +9,17 @@
 #include <mutex>
 #include <string>
 
-class QComboBox;
+namespace qfw {
+class ComboBox;
+class LineEdit;
+class TableWidget;
+class CaptionLabel;
+class PrimaryPushButton;
+class FluentPushButton;
+}  // namespace qfw
+
 class QDragEnterEvent;
 class QDropEvent;
-class QLabel;
-class QLineEdit;
-class QPushButton;
-class QTableWidget;
 
 // 单线程顺序消费队列（转换是 CPU 重活，不做并行）——_QueueWorker 移植
 struct Job {
@@ -69,14 +73,14 @@ private:
     void onDone(int r, bool ok, const QString& msg);
     void clearDone();
 
-    QComboBox* modeCombo_ = nullptr;
-    QComboBox* sizeCombo_ = nullptr;
-    QComboBox* fpsCombo_ = nullptr;
-    QLineEdit* outEdit_ = nullptr;
-    QTableWidget* table_ = nullptr;
-    QPushButton* startBtn_ = nullptr;
-    QPushButton* clearBtn_ = nullptr;
-    QLabel* hint_ = nullptr;
+    qfw::ComboBox* modeCombo_ = nullptr;
+    qfw::ComboBox* sizeCombo_ = nullptr;
+    qfw::ComboBox* fpsCombo_ = nullptr;
+    qfw::LineEdit* outEdit_ = nullptr;
+    qfw::TableWidget* table_ = nullptr;
+    qfw::PrimaryPushButton* startBtn_ = nullptr;
+    qfw::FluentPushButton* clearBtn_ = nullptr;
+    qfw::CaptionLabel* hint_ = nullptr;
     QueueWorker* worker_ = nullptr;
     std::map<int, std::shared_ptr<std::atomic<bool>>> cancels_;
 };
