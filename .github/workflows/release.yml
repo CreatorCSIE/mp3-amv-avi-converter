@@ -1,5 +1,7 @@
 name: Release
-# 仅由 v* tag 触发；产物直接发 GitHub Release，不上传 workflow artifacts。
+# 仅由 v* tag 触发；C++ 便携包（GUI+CLI+Qt 运行时+ffmpeg）直接发 GitHub Release。
+# 工具链定案见 docs/06（Phase2/Phase3 节）：msvcrt 版 MinGW（ucrt 混链 Qt 必崩）+
+# Qt 6.8.3 mingw_64（aqt，官方源勿加 -b 镜像）+ 钉版 gyan ffmpeg（与本地逐位验收同源）。
 on:
   push:
     tags: ["v*"]
@@ -9,45 +11,63 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      QT_VER: 6.8.3
+      WINLIBS: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.3.0posix-18.1.1-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64msvcrt-18.1.1-r1.zip
+      FFMPEG_ZIP: https://github.com/GyanD/codexffmpeg/releases/download/2023-02-27-git-891ed24f77/ffmpeg-2023-02-27-git-891ed24f77-essentials_build.zip
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install
+
+      - name: Install Qt（aqt 官方源；qtmultimedia 默认归档不含，须 -m 补装）
         run: |
-          python -m pip install -U pip
-          pip install -e ".[gui]"
-          pip install nuitka ordered-set
-      - name: Build CLI（Nuitka onefile，控制台）
-        run: >
-          python -m nuitka --standalone --onefile
-          --assume-yes-for-downloads
-          --include-package=amvconv
-          --output-filename=amvconv-cli-${{ github.ref_name }}.exe
-          cli_entry.py
-      - name: Build GUI（Nuitka onefile，PySide6 插件捆 Qt DLL）
-        run: >
-          python -m nuitka --standalone --onefile
-          --windows-console-mode=disable
-          --assume-yes-for-downloads
-          --enable-plugin=pyside6
-          --include-package=amvconv
-          --include-package-data=qfluentwidgets
-          --output-filename=amvconv-gui-${{ github.ref_name }}.exe
-          gui_entry.py
-      - name: Smoke（cli profiles 退出 0；gui offscreen 存活 20s）
+          pip install aqtinstall
+          aqt install-qt windows desktop $env:QT_VER win64_mingw -m qtmultimedia -O C:\Qt
+      - name: Install winlibs MinGW（msvcrt 版，portable 解压）
+        run: |
+          curl.exe -sL $env:WINLIBS -o wl.zip
+          & "C:\Program Files\7-Zip\7z.exe" x wl.zip -oC:\winlibs -y | Out-Null
+          echo "C:\winlibs\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: PATH 前置 Qt bin（压过 runner 自带 msys2 的 ucrt gcc）
+        run: echo "C:\Qt\$env:QT_VER\mingw_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build（Release + GUI）
+        run: |
+          cmake -S src/cpp -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER=C:/winlibs/mingw64/bin/gcc.exe `
+            -DCMAKE_CXX_COMPILER=C:/winlibs/mingw64/bin/g++.exe `
+            -DCMAKE_PREFIX_PATH="C:/Qt/$env:QT_VER/mingw_64" -DAMVCONV_BUILD_GUI=ON
+          cmake --build build -j 4 --target amvconv_gui amvconv_cli
+
+      - name: Package（windeployqt + 随包 ffmpeg）
+        run: |
+          New-Item -ItemType Directory -Force dist\AMVConverter | Out-Null
+          Copy-Item build\gui\amvconv_gui.exe,build\amvconv_cli.exe dist\AMVConverter\
+          Copy-Item src\cpp\packaging\README.txt dist\AMVConverter\
+          & "C:\Qt\$env:QT_VER\mingw_64\bin\windeployqt.exe" --release --no-translations `
+            --compiler-runtime dist\AMVConverter\amvconv_gui.exe
+          curl.exe -sL $env:FFMPEG_ZIP -o ff.zip
+          & "C:\Program Files\7-Zip\7z.exe" x ff.zip "ffmpeg-*/bin/ffmpeg.exe" "ffmpeg-*/bin/ffprobe.exe" -odist -y | Out-Null
+          Copy-Item dist\ffmpeg-*\bin\ffmpeg.exe,dist\ffmpeg-*\bin\ffprobe.exe dist\AMVConverter\
+          Compress-Archive -Path dist\AMVConverter\* -DestinationPath AMVConverter-${{ github.ref_name }}-win64.zip -CompressionLevel Optimal
+
+      - name: Smoke（cli 无参退非 0；gui offscreen 存活 15s）
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          .\amvconv-cli-${{ github.ref_name }}.exe profiles
-          if ($LASTEXITCODE -ne 0) { "cli 冒烟失败 code=$LASTEXITCODE"; exit 1 }
-          "CLI-SMOKE-OK"
-          $p = Start-Process .\amvconv-gui-${{ github.ref_name }}.exe -PassThru
-          Start-Sleep -Seconds 20
-          if (-not $p.HasExited -or $p.ExitCode -eq 0) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; "GUI-SMOKE-OK" }
-          else { "gui exe 提前退出 code=$($p.ExitCode)"; exit 1 }
-      - name: Release（notes 取附注 tag 正文，走 API——checkout@v4 会把 tag peel 成 commit，本地 git tag -l 读不到附注正文）
+          .\dist\AMVConverter\amvconv_cli.exe 2>$null
+          if ($LASTEXITCODE -eq 0) { "cli 无参应非 0，异常"; exit 1 }
+          $p = Start-Process .\dist\AMVConverter\amvconv_gui.exe -PassThru
+          Start-Sleep -Seconds 15
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; "GUI-SMOKE-OK" }
+          elseif ($p.ExitCode -eq 0) { "GUI-SMOKE-OK(提前正常退出)" }
+          else { "gui 提前退出 code=$($p.ExitCode)"; exit 1 }
+
+      - name: Release（notes 取附注 tag 正文——checkout@v4 会把 tag peel 成 commit，本地读不到附注正文）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -58,7 +78,7 @@ jobs:
             "" | Out-File -Encoding utf8 notes.md
           }
           if ((Get-Content notes.md -Raw).Trim()) {
-            gh release create ${{ github.ref_name }} amvconv-cli-${{ github.ref_name }}.exe amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --notes-file notes.md
+            gh release create ${{ github.ref_name }} AMVConverter-${{ github.ref_name }}-win64.zip --title "AMV Converter ${{ github.ref_name }} (C++, Windows x64)" --notes-file notes.md
           } else {
-            gh release create ${{ github.ref_name }} amvconv-cli-${{ github.ref_name }}.exe amvconv-gui-${{ github.ref_name }}.exe --title "AMV Converter ${{ github.ref_name }}" --generate-notes
+            gh release create ${{ github.ref_name }} AMVConverter-${{ github.ref_name }}-win64.zip --title "AMV Converter ${{ github.ref_name }} (C++, Windows x64)" --generate-notes
           }
