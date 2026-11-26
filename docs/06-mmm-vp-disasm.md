@@ -510,7 +510,12 @@ Phase3 windeployqt 打包 + CI 发版（替换 release.yml 的 Nuitka 路线）�
   gyan essentials 静态版（GPL 构建，与项目 GPL-3.0 兼容）即完全自足，不依赖 PATH。
 - 打包版验收：纯净 PATH（仅 System32）下 CLI 转 bars 160x128@25 与金标准 SHA256
   逐位一致；GUI 同环境起窗正常。
-- 发版：zip（97.7MB）→ `gh release create v0.2.0`（gh CLI 已认证 CreatorCSIE）。
+- 发版：`.github/workflows/release.yml`（v* tag 触发全自动：aqt Qt + winlibs msvcrt +
+  构建 + windeployqt + 随包 ffmpeg + 冒烟 + gh release，notes 取附注 tag 正文）。
+  workflow 调通两坑：① winlibs 资产名须按 GitHub API 实查（13.3.0 对应 mingw-w64
+  11.0.1，臆拼 18.1.1 → 404 页被 7z 报非 zip）；② pwsh `-Command` 脚本结束沿用最后
+  一条原生命令的 $LASTEXITCODE——冒烟步里"CLI 无参故意非 0"泄漏成步骤失败，须显式
+  `exit 0`。
 - 坑：新构建目录名必须先补 .gitignore 再 `git add -A`（build-rel 曾整目录误入库，
   经用户确认回退重做 + force-with-lease + 重打 tag 清掉）。
 
