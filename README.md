@@ -5,7 +5,7 @@
 > **免责声明**：本项目仅用于**互操作性研究与数据抢救**，不随附原程序（专有软件）的任何代码与资源。
 > *Interoperability research and data rescue only; no code or assets from the proprietary original tool are redistributed.*
 
-核心理念是**比特流复刻，而非编码器包装**——ffmpeg 自带的 `amv` 编码器量化表与设备真值不符（会产生灰底），所以视频走**自研纯 Python AMV 原生编码器**，逐字节复刻原版输出；ffmpeg 只负责源解码与容器/音频 donor。定案靠三层参照系交叉：
+核心理念是**比特流复刻，而非编码器包装**——ffmpeg 自带的 `amv` 编码器量化表与设备真值不符（会产生灰底），所以视频走**自研 C++ AMV 原生编码器（libamvconv）**，逐字节复刻原版输出（57 条语料 SHA256 逐位回归由 CI 强制，PySide6 分支作预言机）；ffmpeg 只负责源解码与容器/音频 donor。定案靠三层参照系交叉：
 
 ```text
 静态逆向 exe/DLL                      固件 MMM_VP.AL（Unicorn 预言机）
@@ -28,21 +28,21 @@
 ### 转换核心（已可用）
 
 - **AMV 原生编码器**：量化表 / Huffman 表 / DCT / 扫描序 / 容器布局全部从 DLL 与实机标定逆向提取；无头 JPEG 帧（FFD8+熵数据+FFD9）、4:2:0、非 16 倍数尺寸按补齐 MCU 完整编码（填充=亮度 0/色度 128）；原版方向 quirk（vflip + BMP bottom-up）逐字节复刻，设备直显不翻转。
-- **熵编码 C 核**：`_entropy.c` 经 ctypes 现场编译自动加速，缺 gcc 时无感回退纯 Python，输出比特流一致。
+- **熵编码 C 核**：`_entropy.c` 直接编入库（与 PySide6 预言机分支同源文件，逐位一致性由 CI 语料比对强制）。
 - **容器复刻**：`RIFF('AMV ')` + `hdrl` 内 56 字节私有头 `amvh` + `AMV_END_` 哨兵 + **`idx1` 索引**——快进/seek 是固件硬依赖，缺失设备直接报格式错误；已按原版布局写入并实机快进验证。
 - **音频链路**：IMA-ADPCM 变体固定 22050 Hz 单声道，与视频帧 1:1 交织（块样本数 = 22050/fps）；帧率从 UI 参数表候选取最大、低帧率源复制帧补齐，22050 需被 fps 整除。
-- **AVI 模式 writer**：原版头部 / AVI1 / 4B 对齐 / idx1 复刻，产出 PC 播放器友好的 AVI（PotPlayer 对 AMV 容器支持差，AVI 正常），CLI `--avi` 与 GUI 模式切换均已接入。
+- **AVI 模式 writer**：原版头部 / AVI1 / 4B 对齐 / idx1 复刻，产出 PC 播放器友好的 AVI（PotPlayer 对 AMV 容器支持差，AVI 正常），CLI `--mode avi` 与 GUI 模式切换均已接入。
 - **实机全档验证**：RUIZU M7 上 128×128@30 / 160×120@30 / 320×240@25 播放 + 快进全过，画质与原版持平（灰底消除 / 方向 / 拉伸）；ATJ2157 硬件解码上限 320×240。
 
-### GUI（PySide6 + Fluent-Widgets，已可用）
+### GUI（Qt6 C++ + Qt-Fluent-Widgets，已可用）
 
 - **转换页**：批量队列 + 拖拽添加 + 逐行进度条 + 点击取消 + AMV/AVI 双模式 + 分辨率/帧率联动（自动改帧率提示）；双击已完成行弹出结果预览。
 - **预览页（侧边栏独立页）**：打开/拖入任意媒体文件——画面 = ffmpeg 解码输出 = 设备显示取向，**所见即所得**；**内嵌含声播放**（音频主时钟 + 视频追帧，音量滑条实时生效）、播放/暂停、进度条拖动定位。
-- **关于页**：运行环境自检（Python/PySide6/ffmpeg/C 核加载状态）、设备兼容实机结论、第三方库许可证逐字实查列表、致谢与免责声明折叠分组。
+- **关于页**：运行环境自检（Qt/ffmpeg/C++ 内核）、设备兼容实机结论、第三方库许可证逐字实查列表、致谢与免责声明折叠分组。
 
 ### CLI（已可用）
 
-- `amv-conv profiles` 打印逆向得到的 12 档参数表；`convert` 支持 `-s/-f` 与 `--avi [--q]`——`-s/-f` 须命中参数表（拒绝表外尺寸/帧率直透编码器），实验尺寸显式加 `--allow-custom`（底线：偶数、≥16x16、≤320x240）；`inspect` 输出 AMV 容器结构摘要（与原版输出字节级对比用）。
+- `amvconv_cli --mode amv|avi --in SRC --out DST --w W --h H [--fps F] [--flip N] [--q Q]`——尺寸/帧率须命中逆向参数表（12 档，见 `src/cpp/src/profiles.h`）；发布包另含 `profiles` 语义的 GUI 下拉联动。
 
 ### 老素材兼容
 
@@ -58,9 +58,9 @@
 | Phase 1 | AMV 原生编码器（纯 Python + C 核）+ 容器 idx1 尾区 | ✅ 完成，实机全档播放 + 快进验证通过 |
 | Phase 2 | AVI 模式 writer（原版头部 / AVI1 / 4B 对齐 / idx1） | ✅ 完成，实机验证 + CLI `--avi` 接入 |
 | Phase 3 | 画质对齐（灰底消除 / 方向 / 拉伸） | ✅ 实机与原版持平 |
-| Phase 4 | GUI（批量队列 / 进度 / 取消 / 侧边栏内嵌含声预览页 / 关于页） | ✅ 完成，pytest 22 passed |
-| Phase 5 | 发布流水线（GitHub Actions CI + Nuitka onefile 双资产 CLI/GUI + GitHub Release） | ✅ 完成，v0.1.0 已发布 |
-| Phase 6 | 核心 C++ 化 + Qt 壳迁移路线 | 📋 调研完成（docs/06），暂不动工 |
+| Phase 4 | GUI（批量队列 / 进度 / 取消 / 侧边栏内嵌含声预览页 / 关于页） | ✅ PySide6 版完成（pytest 22 passed），后 1:1 翻译至 Qt C++ |
+| Phase 5 | 发布流水线（GitHub Actions CI + Nuitka onefile 双资产 CLI/GUI + GitHub Release） | ✅ 完成，v0.1.0/v0.1.1 已发布（PySide6 分支） |
+| Phase 6 | 核心 C++ 化 + Qt 壳迁移 + 便携发布 | ✅ 完成：编码内核逐位对齐（CI 57 语料）→ Qt6 GUI → v0.2.0 免安装便携包 |
 
 ---
 
@@ -68,14 +68,14 @@
 
 ### 1. 使用者
 
-- **Windows x64**（实机标定平台；核心层跨平台，GUI 未在其他平台验证）。
-- **FFmpeg**：`ffmpeg` 需在 PATH 或随包目录（源解码、donor 容器、内嵌含声预览都靠它）；`ffplay` 可选（通用 PC 播放建议）。
-- 源码运行时需 **Python ≥ 3.10**；GUI 依赖 PySide6 + PySide6-Fluent-Widgets——**注意 PySide6 6.12 wheel 在 Windows 上因系统 ICU 版本冲突无法加载，钉 6.9.x**。
-- gcc 可选：有则熵编码 C 核现场编译加速，无则自动回退纯 Python（结果比特流一致，只是慢）。
+- **Windows x64**（实机标定平台；内核跨平台，GUI 未在其他平台验证）。
+- **下载 [Releases](https://github.com/CreatorCSIE/mp3-amv-avi-converter/releases) 的 v0.2.0 便携包解压即用**——Qt 运行库与 FFmpeg 已随包（免安装、免配置 PATH）。
 
 ### 2. 开发者
 
-- venv + `pip install -e .[gui,dev]`；回归测试 `pytest`（编码器比特流 / AVI 布局 / 参数表 / 进度取消预览）。
+- 工具链（纯 portable，见 docs/06 Phase2 节）：**msvcrt 版 MinGW**（winlibs 13.3，ucrt 版混链 Qt 必崩）+ **Qt ≥ 6.8**（mingw_64 归档，多媒体需 `-m qtmultimedia` 补装）+ CMake ≥ 3.24。
+- 构建：`git submodule update --init` → `cmake -S src/cpp -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=<Qt>/mingw_64 [-DAMVCONV_BUILD_GUI=ON]` → `cmake --build build`。
+- 逐位回归：PySide6 预言机分支（worktree 或 `AMVCONV_ORACLE` 指定）+ `scripts/gen_golden.py` / `compare_cpp_golden.py`（CI 每次自动跑 57 条语料）。
 - 实机验证（可选，改动比特流行为时强烈建议）：RUIZU M7 或同芯片设备 + 读卡器。
 
 ---
@@ -84,47 +84,44 @@
 
 ### 1. 快速开始
 
-**预编译单文件 exe**（`amvconv-cli` / `amvconv-gui`，Nuitka onefile）见 [Releases](https://github.com/CreatorCSIE/mp3-amv-avi-converter/releases)，需 PATH 有 ffmpeg。源码运行：
+**预编译便携包**（`amvconv_gui.exe` + `amvconv_cli.exe` + Qt/ffmpeg 运行库，解压即用）见 [Releases](https://github.com/CreatorCSIE/mp3-amv-avi-converter/releases)。源码构建：
 
 ```bash
-pip install -e .[gui,dev]          # 或仅 pip install -e .（只装核心+CLI）
+git submodule update --init
+cmake -S src/cpp -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_PREFIX_PATH=D:/Qt6/6.8.3/mingw_64 -DAMVCONV_BUILD_GUI=ON
+cmake --build build -j
 
-amv-conv profiles                   # 打印逆向得到的 12 档参数表
-amv-conv convert in.mp4 out.amv -s 160x120 -f 30
-amv-conv convert in.mp4 out.avi -s 160x120 --avi [--q 4]   # AVI 模式（PC 播放器友好）
-amv-conv inspect out.amv            # 容器结构摘要（与原版输出对比用）
-amv-conv-gui                        # GUI：转换队列 + 侧边栏预览页 + 关于页
-pytest                              # 回归测试
+build/amvconv_cli.exe --mode amv --in test.mp4 --out test.amv --w 160 --h 128 --fps 25
+build/gui/amvconv_gui.exe        # GUI：转换队列 + 侧边栏预览页 + 关于页
 ```
 
 ### 2. 仓库结构 (Repository Layout)
 
 ```text
-mp3-amv-avi-converter
-├── docs/                   逆向与标定记录 01–06（含 C++ 化路线调研）
-├── src/amvconv/
-│   ├── cli.py              命令行入口（amv-conv）
-│   ├── core/               壳无关转换核心（纯 Python + 可选 C 核）
-│   │   ├── amvenc.py       AMV 原生编码器（复刻原版比特流）
-│   │   ├── _entropy.c      熵编码 C 核（ctypes 自动编译，缺则回退）
-│   │   ├── aviwriter.py    AVI 模式 writer（原版布局复刻）
-│   │   ├── ffmpeg.py       FFmpeg 子进程（源解码 / donor / 音频）
-│   │   ├── profiles.py     原程序参数表（VIDEOSIZE / AVISIZE）
-│   │   ├── amv.py          AMV 容器解析器（字节级对比工具）
-│   │   ├── preview.py      流式解码预览（seek + 逐帧 RGB）
-│   │   └── models.py       任务 / 结果数据结构
-│   └── gui/                PySide6 + Fluent-Widgets 壳
-│       ├── main_window.py          FluentWindow 主窗 + 转换页
-│       ├── preview_interface.py    侧边栏预览页
-│       ├── media_player.py         共享播放组件
-│       ├── preview_dialog.py       转换结果对话框（复用组件）
-│       └── about_interface.py      关于页（折叠分组）
-└── tests/                  pytest 回归
+mp3-amv-avi-converter（C++ 分支 = 默认；PySide6 分支保留作逐位预言机）
+├── docs/                    逆向与标定记录 01–06（06 含 C++ 移植与打包定案）
+├── src/cpp/
+│   ├── src/                 libamvconv 内核（Qt 无关，静态库）
+│   │   ├── amvenc.*         AMV 原生编码器（与 numpy 预言机逐位对齐）
+│   │   ├── _entropy.c       熵编码核（与 PySide6 分支同源文件）
+│   │   ├── container.*      AMV/AVI 容器拆分/合成
+│   │   ├── ffproc.*         ffmpeg 编排（donor / rawvideo 管道 / 进度 / 取消）
+│   │   ├── proc.*           原生子进程 spawn（UTF-8 路径直通）
+│   │   ├── probe.* + jsonlite.*   ffprobe JSON 探测
+│   │   ├── preview.*        流式解码预览
+│   │   └── profiles.h       逆向参数表（VIDEOSIZE / AVISIZE）
+│   ├── tools/               amvconv_cli（发布 CLI）+ enc_test（块级金标准自测）
+│   ├── gui/                 Qt6 C++ GUI 壳（转换/预览/关于三页）
+│   └── third_party/         Qt-Fluent-Widgets submodule + 幂等补丁
+├── scripts/                 金标准语料生成 / 逐位比对（依赖预言机）
+├── golden/                  57 条逐位语料（manifest 入库，媒体产物不入库）
+└── .github/workflows/       CI：cpp-bitexact（语料再生 + SHA256 全等）
 ```
 
 ### 3. 设计原则
 
-**core 层与界面壳完全解耦**——先用 PySide6 快速迭代逆向实验，日后换壳（Tauri / Qt C++）core 不动。
+**内核（libamvconv）与界面壳完全解耦**——内核 Qt 无关（编码/容器/编排/预览），壳只做壳（C++ CLI / Qt GUI）；PySide6 分支冻结为比特流预言机，逐位一致性由 CI 语料回归强制。
 
 ---
 
@@ -152,7 +149,7 @@ ATJ 固件的快进/seek **硬依赖 idx1 索引区**（movi 后 `AMV_END_` 哨�
 
 ### Q6：需要装原版「媒体播放器管理工具」吗？
 
-不需要，也不应该。本重写不依赖原程序、不随附其任何代码与资源；唯一的外部依赖是 FFmpeg（源解码 / donor 容器 / 含声预览）。
+不需要，也不应该。本重写不依赖原程序、不随附其任何代码与资源；唯一的外部依赖 FFmpeg（源解码 / donor 容器 / 含声预览）在发布包中已随附，源码构建时需 PATH 可用。
 
 ---
 
@@ -162,6 +159,6 @@ ATJ 固件的快进/seek **硬依赖 idx1 索引区**（movi 后 `AMV_END_` 哨�
   - **Copyright (c) 2026 CreatorCSIE. All rights reserved.**
 - **逆向与第三方免责声明**：
   - 逆向对象《媒体播放器管理工具 4.46》及其内置 AMV_EncDLL/AMV_DecDLL 为**专有软件**，本仓库不含、不分发其任何代码与资源；逆向记录仅作互操作性研究文档。
-  - FFmpeg（LGPL-3.0/GPL-2.0，外部进程调用）、PySide6（LGPL-3.0）、PySide6-Fluent-Widgets（GPL-3.0）、NumPy（BSD-3-Clause）等第三方组件版权归各自作者所有。
+  - FFmpeg（LGPL-3.0/GPL-2.0，子进程调用，发布包随附 GPL 构建）、Qt 6（LGPL-3.0）、Qt-Fluent-Widgets（GPL-3.0，submodule 引入）、NumPy（BSD-3-Clause，仅预言机分支）等第三方组件版权归各自作者所有。
   - Actions ATJ 芯片与 AMV 格式相关商标、专利版权归炬力（Actions）及其继任者所有。
 - 转换与分发内容的版权责任由使用者承担。
