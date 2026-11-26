@@ -66,6 +66,7 @@ jobs:
           if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; "GUI-SMOKE-OK" }
           elseif ($p.ExitCode -eq 0) { "GUI-SMOKE-OK(提前正常退出)" }
           else { "gui 提前退出 code=$($p.ExitCode)"; exit 1 }
+          exit 0  # pwsh -Command 结束时沿用 $LASTEXITCODE（cli 无参故意非 0），必须显式清零
 
       - name: Release（notes 取附注 tag 正文——checkout@v4 会把 tag peel 成 commit，本地读不到附注正文）
         env:
